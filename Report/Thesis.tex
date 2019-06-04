@@ -23,6 +23,14 @@
 % PACKAGES
 %==================================================================================================
 \usepackage{LukeThesis}                             %Import Thesis base style
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{backgrounds}
+\tikzstyle{every node}=[draw=black,thick,anchor=west]
 %input{PhDMacros}                                   %Thesis specific macros
 %
 %==================================================================================================
@@ -47,6 +55,22 @@
 %==================================================================================================
 % THESIS STRUCTURE  (Modifiy to include more chapters etc)
 %==================================================================================================
+\definecolor{mygreen}{RGB}{28,172,0} 
+\lstset{language=Verilog, 
+	basicstyle=\small\ttfamily,   
+	breaklines=true,
+	morekeywords={},
+	keywordstyle=\color{blue},
+	morekeywords=[2]{1}, keywordstyle=[2]{\color{black}},
+	identifierstyle=\color{black},
+	commentstyle=\color{mygreen},
+	showstringspaces=false,
+	frame=single,
+	numbers=left,
+	numberstyle={\small \color{black}},
+	numbersep=9pt, 
+}
+\tikzstyle{every node}=[draw=black,thick,anchor=west]
 \begin{document}
 %------------------------
 %Pre-frontmatter material

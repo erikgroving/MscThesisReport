@@ -1,1 +1,46 @@
 \chapter{Hardware Model and Implementation}
+
+
+\begin{figure}
+	\begin{tikzpicture}[]
+	\node[] at (0,0) (top) {red\_pitaya\_top.v};
+	\node[] at (3, -1) (mlled) {ml\_led.v};
+	\node[] at (3, -2) (debounce) {debounce.v};
+	\node[] at (3, -3) (scope) {red\_pitaya\_scope.v};
+	\node[] at (3, -4) (buffermodule) {buffer\_module.v};
+	\node[] at (3, -5) (irf) {internal\_ref\_gen.xci};
+	\node[] at (3, -6) (pfd) {pfd.v};
+	\node[] at (6, -7) (pfdblock) {pfd\_block.v};
+	\node[] at (6, -8) (pfdfilter) {pfd\_filter.v};
+	\node[] at (3, -9) (freqcounter) {freq\_counter.v};
+	\node[] at (6, -10) (freqcounterblock) {freq\_counter\_block.v};
+	\node[] at (9, -11) (interp) {freq\_interp\_clk.xci};
+	\node[] at (3, -12) (pid) {red\_pitaya\_pid.v};
+	\node[] at (6, -13) (pidblock) {imra\_pid\_block.v};
+	\node[] at (6, -14) (pidfilt) {iir\_filter.v};
+	\node[] at (3, -15) (analog) {red\_pitaya\_analog.v};
+	\node[] at (6, -16) (dds) {dds/mixer/lpf};
+	
+	
+	\draw [->] (top) |- (mlled.west);
+	\draw [->] (top) |- (debounce.west);
+	\draw [->] (top) |- (scope.west);
+	\draw [->] (top) |- (buffermodule.west);
+	\draw [->] (top) |- (irf.west);
+	\draw [->] (top) |- (pfd.west);
+	\draw [->] (top) |- (freqcounter.west);
+	\draw [->] (top) |- (pid.west);
+	\draw [->] (top) |- (analog.west);
+	\draw [->] (pfd) |- (pfdblock.west);
+	\draw [->] (pfd) |- (pfdfilter.west);
+	\draw [->] (freqcounter) |- (freqcounterblock.west);							
+	\draw [->] (freqcounterblock) |- (interp.west);
+	\draw [->] (pid) |- (pidblock.west);
+	\draw [->] (pid) |- (pidfilt.west);
+	\draw [->] (analog) |- (dds.west);
+	
+	
+	
+	\end{tikzpicture}
+	\caption{Hierarchy of the FPGA code.}
+\end{figure}

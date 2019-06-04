@@ -1,5 +1,110 @@
 \chapter{Software Model}
 \section{Overview}
-A general-purpose neural network model was developed to verify the algorithmic soundness of the proposed forward and backward passes.
+This section documents the general-purpose neural network framework that was written in C++ for this thesis. There is an example program that trains on the MNIST dataset and documents epoch-by-epoch training statistics. MNIST is a dataset of handwritten digits, containing 60,000 training images and 10,000 test images. The source code for the software model can be found in the appendix as well as online on github.\footnote{\url{
+https://github.com/erikgroving/NeuralNetworkHardwareAccelerator/tree/master/SWModel}.}
+
+
+\section{Motivation}
+The software neural network framework was written so that the FPGA hardware model could be benchmarked against a CPU-based model that performs neural network inference and backward passes using the same method as the hardware model. This benchmark could be used to evaluate the performance of the hardware model. In addition, it could be benchmarked against professional open-source deep-learning frameworks that make use of advanced algebraic methods to perform computation such as matrix multiplication that inherently offer more efficiency. Furthermore, by developing a software model, the algorithmic integrity of the proposed network was able to verified and tested in an expedient manner by using a well-known testing framework, Google Test. Finally, if high floating-point precision were needed for training a network, then the software model could be used to learn the weights and parameters, and then subsequently be loaded into the weight BRAM of the FPGA hardware model.
+
+\section{Design}
+\subsection{Layers}
+The software model was designed to be flexible such that any neural network architecture may be constructed so long as the layer types were implemented. The model currently supports 2D convolutional, fully-connected, and pooling layers. 
+\par 
+All layers are derived from a base class, \texttt{Layer}. Certain methods such as \texttt{forward()} and \texttt{backward()} must be implemented by all derived classes. There is then a \texttt{Net} class that contains a \texttt{vector} of \texttt{Layer} objects. This allows for a flexible design, as one only need add layers to the \texttt{Net} object. Furthermore, the model can easily be extended to other layer types so long as the layer type derives from \texttt{Layer}. 
+\par
+The non-linear activation function used in the model is ReLU because the derivative is trivial to compute. Compared to the sigmoid function, ReLU is much more computationally feasible for an FPGA hardware implementation, and thereofre, ReLU was used in the software model so that both models would use the same activation function.
+\subsection{Training}
+\paragraph{The Softmax Function and Computing Loss Gradients}
+The network uses an implicit Softmax function for the last layer since this converts the logits in the last layer to numbers that can be interpreted as probabilities, ideal for image classification. The softmax function is as shown below:
+\begin{align*}
+    \sigma(\mathbf{x})_i = \frac{e^{x_i}}{\Sigma_{j=1}^N e^{x_j}}
+\end{align*}
+In this function, $x_i$ is the output of neuron $i$ in the last layer.
+\par
+The loss gradients for the neurons in the last layer are computed using multi-class cross entropy loss. Cross entropy loss is computed using probabilities and is defined as:
+\begin{align*}
+    \mathcal{L}(x) = \sum_{i=1}^{N} q(x_i)\log(p(x_i))
+\end{align*}
+In this function, $q(x_i)$ is the true probability of $x$ belonging to class $i$, therefore, $q(x_i) = 1$ when $x$ is of class $i$ and $0$ otherwise. Conversely, $p(x_i)$ is equal to the predicted probability resultant from the softmax function. Therefore, only one probability will account for loss, however, since each probability is an output from the softmax function which takes in all neuron outputs as input, all neurons in the last layer will have a loss gradient.
+\par 
+The derivative of this loss function is needed to perform backpropagation. We define $\mathcal{L}_i$ as the loss for neuron $i$ in the last layer and $z_i$ as the output of neuron $i$. We also introduce $y_i$, which is 1 if $x$ is an instance of class $i$ and 0 otherwise. We can then compute the loss gradient for neuron $i$ in the last layer quite simply as follows: 
+\[    
+\frac{\delta \mathcal{L}_i}{\delta z_i} = z_i - y_i
+\]
+
+\paragraph{Batch Size}
+The software model supports batch training and thus a batch size is to be specified when creating an instance of a new network.
+\paragraph{Learning Rate and Momentum}
+The software model learns using stochastic gradient descent. As such, the network is configured with a learning rate and momentum. The learning rate may be manually readjusted during training epochs. Momentum is a learning technique in that previous updates to a parameter should impact the update in in a geometrically decreasing fashion. We first define a few parameters:
+\begin{center}
+    \begin{tabular} {r l}
+    $m$  \hspace{12pt}---& the momentum parameter\\ 
+    $v$  \hspace{12pt}---& `velocity' \\
+    $lr$ \hspace{12pt}---& the learning rate \\
+    $dx$ \hspace{12pt}---& the loss gradient for some weight or bias $x$. 
+    \end{tabular}
+\end{center}
+
+The momentum-based update in the software model can then be mathematically represented in the following manner:
+\begin{align*}
+v &=  (m \times v) - (lr \times dx) \\
+x &= x + v 
+\end{align*}
+We can observe that each time we update $x$, the previous updates update will have an effect, with the most recent updates having more effect than older ones. A typical value for momentum is 0.9.
+
+
+\section{Structure}
+The software model contains a Makefile and three folders: \textit{data}, \textit{src} and \textit{test}. The \textit{data} folder contains the MNIST binary data files, and is loaded by the example program that trains on the MNIST dataset. The \textit{src} folder contains the source code of the neural network framework. The \textit{test} folder contains test made using the Google Test C++ testing framework. The Makefile is used to build the source as well as tests. This section will detail the source files in the \textit{src} folder that are core to the software model framework. The files \textit{main.cpp} and \textit{parse\_data\{.cpp, .h\}} will be described in section \ref{sw-usage} that focuses on usage.
+
+\paragraph{net\{.cpp, .h\}}
+These files contain the definition of the \texttt{Net} class, the highest-level class of the network. After initializing a \texttt{Net} object, layers can be added to the neural network by calling the \texttt{addLayer()} method which will add a \texttt{Layer} object to a \texttt{vector}. The \texttt{Net} class also stores intermediate activations from the current inference, which are required when performing backward pass to calculate loss gradients. The key parameters to the \texttt{Net} object are set in its constructor, and are defined in table \ref{nettable}. 
+\begin{table}
+	\centering
+	\begin{tabularx}{\textwidth}{|l|l|X|}
+		\hline
+		\textbf{Name} 			& \textbf{Type} 		& \textbf{Description} \\\hline
+		\texttt{in}  			& \texttt{uint32\_t}	& Size of the input to the neural network.\\\hline
+		\texttt{out}			& \texttt{uint32\_t}	& Size of the output of the neural network. \\\hline 
+		\texttt{bs}				& \texttt{uint32\_t}	& Size of the batch size to be used when training the net.\\\hline 
+		\texttt{lr}				& \texttt{uint32\_t}	& The learning rate to be used during training of the network. Can be set and read using the functions \texttt{setLearningRate()} and \texttt{getLearningRate()}. \\\hline 
+		\texttt{momentum}		& \texttt{uint32\_t}	& The momentum to be used when performing updates to the weights and biases of the network.
+		\\\hline
+	\end{tabularx}
+	\caption{Description of parameters for the constructor \texttt{Net} class.}
+	\label{nettable}
+\end{table}
+\par 
+The \texttt{Net} class has a method \texttt{inference()} that computes the forward pass for a batch of inputs, thus the argument is a 2-d \texttt{vector}, with each outer index corresponding to an input. The \texttt{()} operator has also been overloaded to call \texttt{inference()}. This is all that is needed to compute a forward pass.
+\par 
+To compute the backward pass, \texttt{computeLossAndGradients()} should be called first. This method takes in the label data as a \texttt{vector} for the inputs as an argument and computes the loss gradients for the outer layer of the network. Next, a call to \texttt{backpropLoss()} should be made; this method propagates the outer layer loss gradients back through the neural network. After the loss has been back-propagated, weights of each \texttt{Neuron} in the network should be updated by calling \texttt{update()}. Previously cached forward pass activation data should then be cleared with a call to \texttt{clearSavedData()}.
+\paragraph{layer.h}
+This file contains the \texttt{Layer} class, which serves as the base class for all the different types of layer classes in the framework. It contains virtual methods \texttt{forward()} and \texttt{backward()}, representing the forward and backward pass functionality that must be implemented. All layer classes must also contain a \texttt{getType()} method to identify the layer type, as well as methods for \texttt{updateWeights()}, \texttt{clearData()}, and \texttt{getOutput()}.
+
+\paragraph{convolutional\{.cpp, .h\}}
+These files contain the definition of the \texttt{ConvLayer} class, which implements a 2D-convolutional layer. A unique method to the \texttt{ConvLayer} class is the \texttt{getWindowPixels()} method, which returns the pixels inside the filter window.  The class' constructor and key parameters are described in table \ref{convtable}.
+\begin{table}
+\centering
+\begin{tabularx}{\textwidth}{|l|l|X|}
+	\hline
+	\textbf{Name} 			& \textbf{Type} 		& \textbf{Description} \\\hline
+	\texttt{dim}  			& \texttt{uint32\_t}	& Dimensions of the input. The dimension is assumed square, meaning that rows = \texttt{dim} and columns = \texttt{dim}.\\\hline
+	\texttt{filt\_size} 	& \texttt{uint32\_t}	& Dimension of the filter used for the convolution, dimension also assumed square. \\\hline 
+		\texttt{stride} 	& \texttt{uint32\_t}	& Size of the stride \\\hline 
+	\texttt{padding} 		& \texttt{uint32\_t}	& Padding used for convolution. \\\hline 
+	\texttt{in\_channels} 	& \texttt{uint32\_t}	& Amount of channels in the input. \\\hline 
+	\texttt{out\_channels} 	& \texttt{uint32\_t}	& Amount of channels in the output. \\\hline
+\end{tabularx}
+\caption{Description of parameters for the \texttt{ConvLayer} class.}
+\label{convtable}
+\end{table}
+
+
+\paragraph{fullyconnected\{.cpp,.h\}}
+\paragraph{pooling\{.cpp,.h\}}
+\paragraph{neuron\{.cpp, .h\}}
+
+
 \section{Testing}
-\section{Usage}
+
+\section{Usage}\label{sw-usage}
