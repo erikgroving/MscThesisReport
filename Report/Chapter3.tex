@@ -9,7 +9,7 @@ The software neural network framework was written so that the FPGA hardware mode
 
 \section{Design}
 \subsection{Layers}
-The software model was designed to be flexible such that any neural network architecture may be constructed so long as the layer types were implemented. The model currently supports 2D convolutional, fully-connected, and pooling layers. 
+The software model was designed to be flexible such that any neural network architecture may be constructed so long as the layer types were implemented. The model currently supports 2D convolutional, fully connected, and pooling layers. 
 \par 
 All layers are derived from a base class, \texttt{Layer}. Certain methods such as \texttt{forward()} and \texttt{backward()} must be implemented by all derived classes. There is then a \texttt{Net} class that contains a \texttt{vector} of \texttt{Layer} objects. This allows for a flexible design, as one only need add layers to the \texttt{Net} object. Furthermore, the model can easily be extended to other layer types so long as the layer type derives from \texttt{Layer}. 
 \par
@@ -54,7 +54,7 @@ x &= x + v
 We can observe that each time we update $x$, the previous updates update will have an effect, with the most recent updates having more effect than older ones. A typical value for momentum is 0.9.
 
 
-\section{Structure}
+\section{Source Code Structure}
 The software model contains a Makefile and three folders: \textit{data}, \textit{src} and \textit{test}. The \textit{data} folder contains the MNIST binary data files, and is loaded by the example program that trains on the MNIST dataset. The \textit{src} folder contains the source code of the neural network framework. The \textit{test} folder contains test made using the Google Test C++ testing framework. The Makefile is used to build the source as well as tests. This section will detail the source files in the \textit{src} folder that are core to the software model framework. The files \textit{main.cpp} and \textit{parse\_data\{.cpp, .h\}} will be described in section \ref{sw-usage} that focuses on usage.
 
 \paragraph{net\{.cpp, .h\}}
@@ -82,7 +82,7 @@ To compute the backward pass, \texttt{computeLossAndGradients()} should be calle
 This file contains the \texttt{Layer} class, which serves as the base class for all the different types of layer classes in the framework. It contains virtual methods \texttt{forward()} and \texttt{backward()}, representing the forward and backward pass functionality that must be implemented. All layer classes must also contain a \texttt{getType()} method to identify the layer type, as well as methods for \texttt{updateWeights()}, \texttt{clearData()}, and \texttt{getOutput()}.
 
 \paragraph{convolutional\{.cpp, .h\}}
-These files contain the definition of the \texttt{ConvLayer} class, which implements a 2D-convolutional layer. A unique method to the \texttt{ConvLayer} class is the \texttt{getWindowPixels()} method, which returns the pixels inside the filter window.  The class' constructor and key parameters are described in table \ref{convtable}.
+These files contain the definition of the \texttt{ConvLayer} class, which implements a 2D-convolutional layer, and derives from the \texttt{Layer} class. A unique method to the \texttt{ConvLayer} class is the \texttt{getWindowPixels()} method, which returns the pixels inside the filter window, and is used when computing both the forward and backward passes.  The class' constructor and key parameters are described in table \ref{convtable}.
 \begin{table}
 \centering
 \begin{tabularx}{\textwidth}{|l|l|X|}
@@ -101,10 +101,28 @@ These files contain the definition of the \texttt{ConvLayer} class, which implem
 
 
 \paragraph{fullyconnected\{.cpp,.h\}}
-\paragraph{pooling\{.cpp,.h\}}
-\paragraph{neuron\{.cpp, .h\}}
+These files define the \texttt{FullyConnected} class. The class only has two defining parameters in its constructor: \texttt{in} and \texttt{out}, which are of type \texttt{uint32\_t} and specify the input and output size to the layer, respectively. It derives from the base \texttt{Layer} class, so methods such as \texttt{forward()} and \texttt{backward()} are also implemented.
 
+\paragraph{pooling\{.cpp,.h\}}
+These files define the \texttt{PoolingLayer} class. The class derives from \texttt{Layer} and performs a 2D 2$\times$2 max pooling operation. There are three main parameters for the class: \texttt{dim\_i}, \texttt{dim\_o}, and \texttt{channels}. The parameters \texttt{dim\_i} and \texttt{dim\_o} specify the dimension of the input and output feature vectors. Since the layer currently only performs 2$\times$2 max pooling, \texttt{dim\_o} will always be half of \texttt{dim\_i}, though if different types of pooling filters were to be supported, then \texttt{dim\_o} would be necessary. The \texttt{channels} parameter is used to specify the number of channels of size \texttt{dim\_i} $\times$ \texttt{dim\_i} present in the input.
+
+\paragraph{neuron\{.cpp, .h\}}
+These files define the \texttt{Neuron} class. The \texttt{Neuron} class is the computational building block of the fully connected and convolutional layers. The fan-in of the neuron is specified in the constructor. Weights should be initialized using the \texttt{initWeights()} method, which implements He initialization \cite{HeZR015}. He initialization randomly initializes weights using a normal distribution with a mean of 0 and a variance of $\frac{2}{\text{fan\_in}}$. 
+\par 
+The class implements all necessary computational elements for a neuron in a neural network. During a forward pass, a neuron's net and activation are computed with \texttt{computeNet()} and \texttt{computeActivation()} respectively. When computing the backward pass, the gradients for the neuron's weights are computed using \texttt{calculateGradient()}. Weights can be subsequently updated using the \texttt{updateWeights()} function. Finally, all gradient data can be cleared using \texttt{clearBackwardData()}.
 
 \section{Testing}
+To ensure the correctness of the software model, several test suites were created during development. Source code for the test suites can be found in the \textit{test} folder as well as in the appendix.
+\todo[inline]{source code in appendix}
+\subsection{Test Suites}
+Four test suites were created during the development of the software model. The test cases were written to test features as they were developed. As such, the tests include neuron functionality, forward pass for fully connected and convolutional layers, and finally a gradient checking test suite to verify the backward pass. This section elaborates on the test suites that were used during development.
+
+\paragraph{Neuron Testing}
+\paragraph{Fully Connnected Forward Pass}
+\paragraph{Convolutional Forward Pass}
+\paragraph{Gradient Checking}
+
+\subsection{Building and Running the Test Suites}
+
 
 \section{Usage}\label{sw-usage}
