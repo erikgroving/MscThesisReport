@@ -1,10 +1,36 @@
 \chapter{Hardware Model and Implementation}
 
+This chapter details the hardware designed during this Master's thesis to accelerate neural network training. The current hardware implements both training and inference acceleration for the neural network architecture described in section \ref{net-arch}.
+\todo[inline]{Refer to github, appendix, and project link}
+\section{Specifications}
+The hardware model was implemented using a ZedBoard. The ZedBoard is a development board equipped with a Zynq-7000 XC7Z020 SoC. The Zynq series has both a processing system and programmable logic, where the processing system is a ARM Cortex-A9 based processor (hereafter referred to as the ``PS'') and the programmable logic is an Artix-7 series FPGA. Bitstreams for the FPGA were generated using Vivado 2018.3 and PetaLinux boot images for the PS were created using Xilinx SDK. The hardware description language (HDL) code for the project was primarily written in SystemVerilog.
+\todo[inline]{Cite the datasheets}
+
+\section{The Implemented Neural Network}\label{net-arch}
+\todo[inline]{MACs of the networks, distribution of kernels, probably to go in analysis}
+\todo[inline]{figure of network.}
+
+\section{Design Goals}
+There were a few principles that guided the overall design process throughout the development of the hardware accelerator. A core tenet was to maintain the project such that in the future HDL could be generated for training a network of any architecture so long as the desired layer types had an implementation. As a result, all layers have been modularized and internal components are parameterized. Designing in a modular and parameterizable fashion also allows for quick and easy readjustments to the neural network architecture if needed.
+\par 
+In addition, optimal usage of resources available was prioritized. For example, the limiting factor on performance was the amount of DSPs. An optimal balance of DSPs This process was manually calculated and specific to this device and network architecture, though an algorithm could be designed to achieve a go also maximized the computational resources available to 
+
+\section{Overall Architecture}
+In the hardware model, both the Zynq's PS and the FPGA were used to facilitate a cohesive and efficient architecture to accelerate neural network computation. The
+
+\section{Layer Architecture}
+\subsection{Fully Connected Layers}
+\subsection{Softmax Layer}
+\section{Interlayer Architecture}
+\section{ARM-Zynq Communication}
+\section{Memory Map Layout}
+\section{Project Structure}
+
 
 \begin{figure}
 	\begin{tikzpicture}[]
-	\node[] at (0,0) (top) {red\_pitaya\_top.v};
-	\node[] at (3, -1) (mlled) {ml\_led.v};
+	\node[] at (0,0) (top) {neural\_net\_top.sv};
+	\node[] at (3, -1) (mlled) {fc0\_layer.sv};
 	\node[] at (3, -2) (debounce) {debounce.v};
 	\node[] at (3, -3) (scope) {red\_pitaya\_scope.v};
 	\node[] at (3, -4) (buffermodule) {buffer\_module.v};
@@ -42,5 +68,5 @@
 	
 	
 	\end{tikzpicture}
-	\caption{Hierarchy of the FPGA code.}
+	\caption{Hierarchy of the FPGA code used for the implementation of the network.}
 \end{figure}
