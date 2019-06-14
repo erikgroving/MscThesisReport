@@ -11,16 +11,25 @@ The hardware model was implemented using a ZedBoard. The ZedBoard is a developme
 \todo[inline]{figure of network.}
 
 \section{Design Goals}
-There were a few principles that guided the overall design process throughout the development of the hardware accelerator. A core tenet was to maintain the project such that in the future HDL could be generated for training a network of any architecture so long as the desired layer types had an implementation. As a result, all layers have been modularized and internal components are parameterized. Designing in a modular and parameterizable fashion also allows for quick and easy readjustments to the neural network architecture if needed.
+There were a few key principles that guided the overall design process throughout the development of the hardware accelerator. A core tenet was to maintain the project such that in the future HDL could be generated for training a network of any architecture so long as the desired layer types had an implementation. As a result, all layers have been modularized and internal components are parameterized. Designing in a modular and parameterizable fashion also allows for quick and easy readjustments to the neural network architecture if needed.
 \par 
-In addition, optimal usage of resources available was prioritized. For example, the limiting factor on performance was the amount of DSPs. An optimal balance of DSPs This process was manually calculated and specific to this device and network architecture, though an algorithm could be designed to achieve a go also maximized the computational resources available to 
+In addition, optimal usage of resources available was prioritized. For example, the limiting FPGA resource was the amount of digital signal processing slices (DSPs). Therefore, the FPGA design optimized the distribution of DSPs over other resources as opposed to saving an extra Block RAM (BRAM) block. 
 
 \section{Overall Architecture}
-In the hardware model, both the Zynq's PS and the FPGA were used to facilitate a cohesive and efficient architecture to accelerate neural network computation. The
+In the hardware model, both the Zynq's PS and the FPGA were used to facilitate a cohesive and efficient architecture to accelerate neural network computation. The 
 
 \section{Layer Architecture}
 \subsection{Fully Connected Layers}
 \subsection{Softmax Layer}
+To have training be feasible, a proper loss function was required to calculate initial gradients for the output neurons. As such, cross entropy loss, one of the most popular loss functions in deep learning was chosen for this network. Cross-entropy loss is a statistical loss that uses probabilities as input, as shown below.
+\begin{align}
+\mathcal{L}(y) = - \sum_{i = 1}^{C}y_{i,c}\log(p_{i,c})
+\end{align}
+In this equation, 
+\todo[inline]{Consider against the cross entropy loss defined in chapter 3, define it in chapter 2 IMO}
+
+As explained in chapter \ref{background}, the softmax functions converts logits to probabilities in following manner
+
 \section{Interlayer Architecture}
 \section{ARM-Zynq Communication}
 \section{Memory Map Layout}
