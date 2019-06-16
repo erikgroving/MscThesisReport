@@ -17,17 +17,9 @@ All layers are derived from a base class, \texttt{Layer}. Certain methods such a
 The non-linear activation function used in the model is ReLU because the derivative is trivial to compute. Compared to the sigmoid function, ReLU is much more computationally feasible for an FPGA hardware implementation, and thereofre, ReLU was used in the software model so that both models would use the same activation function.
 \subsection{Training}
 \paragraph{The Softmax Function and Computing Loss Gradients}
-The network uses an implicit Softmax function for the last layer since this converts the logits in the last layer to numbers that can be interpreted as probabilities, ideal for image classification. The softmax function is as shown below:
-\begin{align*}
-    \sigma(\mathbf{x})_i = \frac{e^{x_i}}{\Sigma_{j=1}^N e^{x_j}}
-\end{align*}
-In this function, $x_i$ is the output of neuron $i$ in the last layer.
+The network uses an implicit Softmax function for the last layer since this converts the logits in the last layer to numbers that can be interpreted as probabilities, ideal for image classification. 
 \par
-The loss gradients for the neurons in the last layer are computed using multi-class cross entropy loss. Cross entropy loss is computed using probabilities and is defined as:
-\begin{align}
-    \mathcal{L}(x) = \sum_{i=1}^{N} q(x_i)\log(p(x_i))
-\end{align}
-In this function, $q(x_i)$ is the true probability of $x$ belonging to class $i$, therefore, $q(x_i) = 1$ when $x$ is of class $i$ and $0$ otherwise. Conversely, $p(x_i)$ is equal to the predicted probability resultant from the softmax function. Therefore, only one probability will account for loss, however, since each probability is an output from the softmax function which takes in all neuron outputs as input, all neurons in the last layer will have a loss gradient.
+The loss gradients for the neurons in the last layer are computed using multi-class cross entropy loss. Therefore, only one probability will account for loss, however, since each probability is an output from the softmax function which takes in all neuron outputs as input, all neurons in the last layer will have a loss gradient.
 \par 
 The derivative of this loss function is needed to perform backpropagation. We define $\mathcal{L}_i$ as the loss for neuron $i$ in the last layer and $z_i$ as the output of neuron $i$. We also introduce $y_i$, which is 1 if $x$ is an instance of class $i$ and 0 otherwise. We can then compute the loss gradient for neuron $i$ in the last layer quite simply as follows: 
 \[    
