@@ -65,13 +65,28 @@ Cross-entropy loss is a probabilistic loss function and as such, is frequently p
 In this function, $q(x_i)$ is the true probability of $x$ belonging to class $i$, therefore, $q(x_i) = 1$ when $x$ is of class $i$ and $0$ otherwise; $p(x_i)$ is equal to the predicted probability.
 
 \subsection{Backpropagation}\label{backprop}
-Backpropagation is a method in which the weights of a network can be trained on a dataset by propagating the loss from the output layer backward through the network. It utilizes the chain rule from calculus to propagate the loss.
+Backpropagation is a method in which the weights of a network can be trained on a dataset by propagating the loss (also referred to as gradient in gradient descent) from the output layer backward through the network. There are three computational steps to be made during backpropagation: propagating loss gradients to the previous layer, using loss gradients for neurons in a layer to calculate individual weight gradients, and then finally to update the weights.
+
+\paragraph{Calculating the Loss Gradients in the Output Layer}
+For the first part of backpropagation, we must use the partial derivative of the loss function with respect to each of the neuron outputs to begin backpropagation.
+
+
+\paragraph{Backpropagating the Loss Gradient}
+
+\paragraph{Calculating Weight Gradients}
+
+\paragraph{Updating the Weights}
+
 
 
 \subsection{Hyperparameters}
+
 \paragraph{Learning Rate}
+
 \paragraph{Batch Size}
+
 \paragraph{Momentum}
+
 \paragraph{Training Epochs}
 
 
