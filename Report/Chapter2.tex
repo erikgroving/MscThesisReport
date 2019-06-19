@@ -54,7 +54,7 @@ The softmax function converts a vector of logits to a vector of probabilities. I
 \begin{align}
 \sigma(\mathbf{x})_i = \frac{e^{x_i}}{\Sigma_{j=1}^C e^{x_j}} \label{sm-func}
 \end{align}
-In this function, $x_i$ is the net of neuron $i$ from the last layer. Each neuron in the last layer represents a class, so the size of the last layer is equivalent to the number of classes, $C$. 
+In this function, $x_i$ is the net of neuron $i$ from the layer. Generally, the softmax function is used in the last layer to generate probabilities for multi-class problems. Each neuron in the layer represents a class, so the size of the last layer is equivalent to the number of classes, $C$. In much of the literature, the softmax portion of a neural network is referred to as the softmax layer as opposed to simply being the activation function of the neuron nets in the last layer.
 
 
 \subsection{Cross-Entropy Loss}
@@ -68,26 +68,71 @@ In this function, $q(x_i)$ is the true probability of $x$ belonging to class $i$
 Backpropagation is a method in which the weights of a network can be trained on a dataset by propagating the loss (also referred to as gradient in gradient descent) from the output layer backward through the network. There are three computational steps to be made during backpropagation: propagating loss gradients to the previous layer, using loss gradients for neurons in a layer to calculate individual weight gradients, and then finally to update the weights.
 
 \paragraph{Calculating the Loss Gradients in the Output Layer}
-For the first part of backpropagation, we must use the partial derivative of the loss function with respect to each of the neuron outputs to begin backpropagation.
-
+For the first part of backpropagation, we must use the partial derivative of the loss function with respect to each of the neuron outputs to begin backpropagation. Note that the cross-entropy loss is calculated directly from the probabilities from the softmax function of the last layer. Therefore, the loss must derive the loss function with respect to the probabilities, and then must derive the softmax function in order to attain $\frac{\delta \mathcal{L}}{\delta \text{net}_o}$ for the neurons in the last layer. The calculus is omitted for brevity, but the final result is clean and simple, as shown in equation \ref{sm-deriv} \cite{sm-derivative}. 
+\begin{align}
+\frac{\delta \mathcal{L}}{\delta \text{net}_{o,i}} &= p_i - y_i	\label{sm-deriv}
+\end{align}
+This equation calculates the partial derivative of the loss with respect to the net of the last layers output neuron. $p_i$ is the probability computed from the softmax function and $y_i$ is the true probability. Thus, if the input sample belong to class $i$, $y_i$ is equal to 1, otherwise $y_i$ is 0. Once the initial gradient for each neuron in the last layer has been calculated, backpropagation of the loss through the previous layers is possible.
 
 \paragraph{Backpropagating the Loss Gradient}
+The strength of backpropagation is being able to use the chain rule to calculate gradients from previous layers. At a high-level, a neuron in a previous layer's output will affect the nets of neurons in the next layer. Since each activation is multiplied by a weight, the affect on the net is determined by a weight. For example, if a neuron's activation $a_o$ increases by $\epsilon$, then each of the next layer's neuron nets will increase by $w\times \epsilon$, where $w$ is the weight for that connection. This connection is also somtimes referred to as a \textit{synapse}, a term inspired from neuroscience.
+
+An example illustrating this is shown in figure \ref{neuron-bp}. The gradients for the nets of $C$, $D$, and $E$ are represented by $\delta$. The gradient of a net is commonly referred to as the \textit{sensitivity} of a neuron. Subsequently, the weights on the synapses are also shown. With this knowledge, we can calculate $\frac{\delta \mathcal{L}}{\delta B}$ as shown in equation \ref{ex-nbp}.
+\begin{align}
+\frac{\delta \mathcal{L}}{\delta B} = \delta_cw_{(b,c)} + \delta_dw_{(b,d)} + \delta_ew_{(b,e)} \label{ex-nbp}
+\end{align}
+\begin{figure}
+	\centering 
+	\includegraphics[width=\textwidth]{figures/neuron_bp.pdf}
+	\caption{Example of backpropagating the loss gradient to the previous layer. Values used in backpropagating the loss to neuron B shown in red.} \label{neuron-bp}
+\end{figure}
+
+In more formal mathematical terms, if we know the $\frac{\delta \mathcal{L}}{\delta \text{net}}$, or $\delta$, for each neuron in a layer with $n$ neurons, then we can calculate the gradient for any neuron $i$'s activation in the previous layer containing $m$ neurons as shown in equation \ref{nbp-eq}.
+\begin{align}
+\frac{\delta \mathcal{L}}{\delta m_i} = \sum_{j=1}^{n} \delta_jw_{(i,j)} \label{nbp-eq}
+\end{align}
+
+The sensitivity for the neurons in layer $m$ can then be computed using the derivative of the activation function. Since this thesis only uses ReLU, the derivative is simple to calculated and shown in equation \ref{deriv-relu}. Note that the ReLU derivative is undefined at 0, however, in practical cases using a derivative of 0 works fine.
+\begin{align}
+f'(x) = \begin{cases}
+	1 & x > 0\\
+	0 & x < 0\\
+	\text{undefined} & x = 0
+\end{cases}\label{deriv-relu}
+\end{align}
+
 
 \paragraph{Calculating Weight Gradients}
+Once the sensitivity $\delta$ of neuron is known, calculating the gradients of individual weights and biases is possible. From a high-level, if we increase weight $w$ by $\epsilon$, then the product term of the net for the neuron will be $(w + \epsilon)a_i$, a net increase of $a_i\times\epsilon$. Therefore, the gradient for a weight is dependent on how large the weight's corresponding activation is. That means the weight corresponding to a large activation will have a much larger gradient than a weight corresponding to a small activation.
+
+Returning to the previous example, the figure has now been updated to show how weight gradients for neuron $C$, this is shown in figure \ref{weight-bp}. The gradients for the 2 connecting weights are calculated as shown below. $A_o$ and $B_o$ are the activations of neuron $A$ and $B$, respectively. As one would expect, the gradient of a weight is dependent on the magnitude of the neuron activation it is multiplied with, and the sensitivity of the neuron whose net it is summed with.
+\begin{align*}
+\frac{\delta \mathcal{L}}{\delta w_{(a,c)}} &= \delta_cA_o\\
+\frac{\delta \mathcal{L}}{\delta w_{(b,c)}} &= \delta_cB_o
+\end{align*}
+\begin{figure}
+	\centering 
+	\includegraphics[width=\textwidth]{figures/weight_bp.pdf}
+	\caption{Example of computing weight gradients. Relevant values shown in red.} \label{weight-bp}
+\end{figure}
 
 \paragraph{Updating the Weights}
+Once $\frac{\delta \mathcal{L}}{\delta w}$ is known for every single weight, the final step of backpropagation is to update the weights. This is performed by scaling the gradient for the weight by a value, known as the learning rate, $\eta$, and then subtracting it from the weight, since this will move the weight in the direction that lowers the loss. This is shown in equation \ref{weight-update}.
+\begin{align}
+	w_{new} = w_{old} - \eta\frac{\delta \mathcal{L}}{\delta w} \label{weight-update}
+\end{align}
 
 
 
 \subsection{Hyperparameters}
-
+There are many hyperparameters to consider when designing a neural network. As described in section \ref{backprop}, the learning rate determines how of an impact the loss gradient has when updating the weight. 
 \paragraph{Learning Rate}
 
 \paragraph{Batch Size}
 
 \paragraph{Momentum}
 
-\paragraph{Training Epochs}
+
 
 
 \section{Deep-Learning Frameworks}

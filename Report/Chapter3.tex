@@ -39,12 +39,6 @@ The software model learns using stochastic gradient descent. As such, the networ
     \end{tabular}
 \end{center}
 
-The momentum-based update in the software model can then be mathematically represented in the following manner:
-\begin{align*}
-v &=  (m \times v) - (lr \times dx) \\
-x &= x + v 
-\end{align*}
-We can observe that each time we update $x$, the previous updates update will have an effect, with the most recent updates having more effect than older ones. A typical value for momentum is 0.9.
 
 
 \section{Source Code Structure}
