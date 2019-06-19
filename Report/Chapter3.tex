@@ -29,15 +29,7 @@ The derivative of this loss function is needed to perform backpropagation. We de
 \paragraph{Batch Size}
 The software model supports batch training and thus a batch size is to be specified when creating an instance of a new network.
 \paragraph{Learning Rate and Momentum}
-The software model learns using stochastic gradient descent. As such, the network is configured with a learning rate and momentum. The learning rate may be manually readjusted during training epochs. Momentum is a learning technique in that previous updates to a parameter should impact the update in in a geometrically decreasing fashion. We first define a few parameters:
-\begin{center}
-    \begin{tabular} {r l}
-    $m$  \hspace{12pt}---& the momentum parameter\\ 
-    $v$  \hspace{12pt}---& `velocity' \\
-    $lr$ \hspace{12pt}---& the learning rate \\
-    $dx$ \hspace{12pt}---& the loss gradient for some weight or bias $x$. 
-    \end{tabular}
-\end{center}
+The software model learns using stochastic gradient descent. As such, the network is configured with a learning rate and momentum. The learning rate may be manually readjusted during training epochs.
 
 
 

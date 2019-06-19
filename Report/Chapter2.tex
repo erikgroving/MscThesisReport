@@ -18,8 +18,7 @@ The \textit{fan-in} to a neuron is the amount of elements in the input vector $\
 \paragraph{Weight Initialization}
 Proper weight initialization is paramount to successfully training a neural network. Firstly, weights cannot be all initialized to 0, for this will result in the same gradient for all weights, and thus all weights will be updated in the same manner. This would effectively mean that the network would become a function of a singular weight.
 
-The most na\"ive way to initialize weights would to assign each weight a random value between some range. In most cases, this is good enough for the network to converge to a relatively optimal solution so long as the range is not to extreme. 
-\todo[inline]{He initialization with proper paper cite}
+The most na\"ive way to initialize weights would to assign each weight a random value between some range. In most cases, this is good enough for the network to converge to a relatively optimal solution so long as the range is not to extreme. A recent popular and effective way to initialize the weights is through He Initialization, which randomly initializes weights using a normal distribution with a mean of 0 and a variance of $\frac{2}{\text{fan\_in}}$ \cite{HeZR015}. 
 
 
 \subsection{Fully-Connected Layers}
@@ -125,15 +124,22 @@ Once $\frac{\delta \mathcal{L}}{\delta w}$ is known for every single weight, the
 
 
 \subsection{Hyperparameters}
-There are many hyperparameters to consider when designing a neural network. As described in section \ref{backprop}, the learning rate determines how of an impact the loss gradient has when updating the weight. 
-\paragraph{Learning Rate}
+There are many hyperparameters to consider when designing a neural network. As described in section \ref{backprop}, the learning rate determines how of an impact the loss gradient has when updating the weight. Related to the learning rate is another hyperparameter known as momentum. The term is inspired from physics and has the effect of incorporating past updates in a geometrically decreasing fashion. We first define a few parameters:
+\begin{center}
+	\begin{tabular} {r l}
+		$m$  \hspace{12pt}---& the momentum parameter\\ 
+		$v$  \hspace{12pt}---& `velocity' \\
+		$\eta$ \hspace{12pt}---& the learning rate \\
+		$dw$ \hspace{12pt}---& the loss gradient for some weight or bias $w$. 
+	\end{tabular}
+\end{center}The momentum-based update can then be mathematically represented in the following manner:
+\begin{align*}
+v &=  (m \times v) - (\eta \times w) \\
+w &= w + v 
+\end{align*}
+Each time each time we update $w$, previous updates update will also have an effect. A typical value for momentum is 0.9.
 
-\paragraph{Batch Size}
-
-\paragraph{Momentum}
-
-
-
+The final hyperparameter to be discussed in this section is batch size. Batch size determines the amount of forward and backward passes should be computed before performing a weight update. There is no typical value for the batch size and the optimal batch sizes varies largely by dataset and problem type.
 
 \section{Deep-Learning Frameworks}
 Deep-learning has come into the spotlight in the past few years and as such, many popular and robust frameworks have been developed. Some of the most popular frameworks are TensorFlow which is developed by Google, and PyTorch which is developed by Facebook. Other popular frameworks include Keras and Caffe. These frameworks are generally relatively simple to use while delivering high performance. 
@@ -143,3 +149,12 @@ Deep-learning has come into the spotlight in the past few years and as such, man
 For this thesis, PyTorch has been chosen as the framework to construct a model against which to benchmark my results. PyTorch offers a simplistic interface to build highly customizable neural networks. In addition, it also has support for GPU-training, thus both CPU and GPU benchmarks can be obtained.
 
 \section{Related Work}
+With the surge in popularity of neural networks, there has been a lot of research focusing on improving the performance of inference and training. Zhao et al. developed a data-streaming solution (F-CNN) using an FPGA to perform 32-bit floating point training and inference. They used a CPU to communicate weights, addresses, and training data over a PCI-E bus, ultimately obtaining roughly a 4 times speedup over a CPU implementation and a 7.5 times more power-efficient compared to a GPU implementation \cite{FCNN}.
+
+The Alternative Computing Technologies lab at the  Georgia Institute of Technology has begun promising work on a framework called TABLA, that generates FPGA code for a multitude of machine learning models. The framework is based on creating individual processing engines inside processing units and thus creating a more generalized design by having schedulers assign work to these processing units. Training and inference have been tested with promising results on a Xilinx Zynq-7000 SoC and the group are aiming to make it public in the near future \cite{TABLA}.
+
+The majority of work based on accelerators for neural networks has been focused on inference. Google's Tensor Processing Unit (TPU) has found real-world success by performing inference on networks using Google's TensorFlow Lite framework \cite{TPU}. This framework sacrifices precision for speed and obtains great performance with little punishment to overall accuracy, due to inference being less accuracy reliant than training. The Eyeriss is another hardware accelerator chip that has been developed to improve inference. It is designed by the Eyeriss Project team at the Massachusetts Institute of Technology. Its primary contribution is a novel dataflow optimization for convolutional neural networks called RS, for row stationary. This optimization allows for a high percentage of data reuse during inference \cite{eyeriss}.
+
+The overwhelming majority of research regarding hardware acceleration for neural networks is focused on inference. Consequently, aside from the aformentioned F-CNN FPGA-based framework for training neural network, there has not been much research investigating neural network training on an FPGA. This work differs from the F-CNN as it investigates the effectiveness of using fixed-point arithmetic instead of floating point during training, allowing for extra speed at the sacrifice of accuracy. Furthermore, this work proposes that the main advantage of using a training accelerator is for datasets that train optimally with smaller batch sizes.
+
+\todo[inline]{Perhaps make use of Courbariaux: Results from Courbariaux et al. show that training has much stricter accuracy requirements than inference.}
