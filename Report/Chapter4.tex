@@ -4,10 +4,22 @@ This chapter details the hardware designed during this Master's thesis to accele
 \todo[inline]{Refer to github, appendix, and project link}
 \section{Specifications}
 The hardware model was implemented using a ZedBoard. The ZedBoard is a development board equipped with a Zynq-7000 XC7Z020 SoC. The Zynq series has both a processing system and programmable logic, where the processing system is a ARM Cortex-A9 based processor (hereafter referred to as the ``PS'') and the programmable logic is an Artix-7 series FPGA. Bitstreams for the FPGA were generated using Vivado 2018.3 and PetaLinux boot images for the PS were created using Xilinx SDK. The hardware description language (HDL) code for the project was primarily written in SystemVerilog. The programs run on the PS were written in C.
-\todo[inline]{Cite the datasheets}
 
 \section{The Implemented Neural Network}\label{net-arch}
-To demonstrate a proof of concept for a neural network training hardware accelerator, a network architecture had to be designed.
+The classical MNIST handwritten digit dataset was chosen as the problem setting for the hardware model as a proof-of-concept. This problem has been chosen to verify the value in designing accelerators that take advantage of the finer-grained parallelism present in neural networks. The network consists of an input layer, 3 fully-connected layers, and a softmax output layer. The input layer is a 28$\times$28 grayscale image of a handwritten digit. The rest of the layers in the network are shown in table \ref{net-arch-table}. Layers whose name starts with FC are fully-connected layers. 
+\begin{table}
+	\centering
+	\begin{tabular}{|c| c| c|}
+		\hline
+		\textbf{Layer Name}	& \textbf{Input Size} & \textbf{Output Size}\\\hline
+		FC0	& 784 (28$\times$28) & 98 \\\hline
+		FC1 & 98 & 64 \\\hline
+		FC2 & 64 & 10 \\\hline
+		Softmax & 10 & 10\\\hline
+	\end{tabular}
+	\caption{The hidden and output layers in the implemented neural network}
+	\label{net-arch-table}
+\end{table}
 
 \section{Design Goals}
 There were a few key principles that guided the overall design process throughout the development of the hardware accelerator. A core tenet was to maintain the project such that in the future HDL could be generated for training a network of any architecture so long as the desired layer types had an implementation. As a result, all layers have been modularized and internal components are parameterized. Designing in a modular and parameterizable fashion also allows for quick and easy readjustments to the neural network architecture if needed.
