@@ -18,8 +18,28 @@ In addition, optimal usage of resources available was prioritized. For example, 
 \section{Overall Architecture}
 In the hardware model, both the Zynq's PS and the FPGA were used to facilitate a cohesive and efficient architecture to accelerate neural network computation. The 
 
+\begin{figure}
+	\centering 
+	\includegraphics[width=\textwidth]{figures/overall_arch}
+	\caption{Architecture of the hardware accelerator}\label{overall-arch}
+\end{figure}
+
 \section{Layer Architecture}
+
 \subsection{Fully Connected Layers}
+
+\begin{figure}
+	\centering 
+	\includegraphics[width=\textwidth]{figures/fully_connected_arch}
+	\caption{Architecture of the fully connected layer}\label{fc-arch}
+\end{figure}
+
+\begin{figure}
+	\centering 
+	\includegraphics[width=5in]{figures/kernel_arch}
+	\caption{Architecture of the kernel}\label{kernel-arch}
+\end{figure}
+
 \subsection{Softmax Layer}
 To have training be feasible, a proper loss function was required to calculate initial gradients for the output neurons. As such, cross entropy loss, one of the most popular loss functions in deep learning was chosen for this network. Cross-entropy loss is a statistical loss that uses probabilities as input, as shown below.
 \begin{align}
