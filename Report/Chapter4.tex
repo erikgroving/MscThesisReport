@@ -6,7 +6,7 @@ This chapter details the hardware designed during this Master's thesis to accele
 The hardware model was implemented using a ZedBoard. The ZedBoard is a development board equipped with a Zynq-7000 XC7Z020 SoC. The Zynq series has both a processing system and programmable logic, where the processing system is a ARM Cortex-A9 based processor (hereafter referred to as the ``PS'') and the programmable logic is an Artix-7 series FPGA. Bitstreams for the FPGA were generated using Vivado 2018.3 and PetaLinux boot images for the PS were created using Xilinx SDK. The hardware description language (HDL) code for the project was primarily written in SystemVerilog. The programs run on the PS were written in C.
 
 \section{The Implemented Neural Network}\label{net-arch}
-The classical MNIST handwritten digit dataset was chosen as the problem setting for the hardware model as a proof-of-concept. This problem has been chosen to verify the value in designing accelerators that take advantage of the finer-grained parallelism present in neural networks. The network consists of an input layer, 3 fully-connected layers, and a softmax output layer. The input layer is a 28$\times$28 grayscale image of a handwritten digit. The rest of the layers in the network are shown in table \ref{net-arch-table}. Layers whose name starts with FC are fully-connected layers. 
+The classical MNIST handwritten digit dataset was chosen as the problem setting for the hardware model as a proof-of-concept. This problem has been chosen to verify the value in designing accelerators that take advantage of the finer-grained parallelism present in neural networks. The network consists of an input layer, 3 fully-connected layers, and a softmax output layer. The input layer is a 28$\times$28 grayscale image of a handwritten digit. The dimensions of the rest of the layers in the network are shown in table \ref{net-arch-table}. Layers whose name starts with FC are fully-connected layers. 
 \begin{table}
 	\centering
 	\begin{tabular}{|c| c| c|}
@@ -27,7 +27,11 @@ There were a few key principles that guided the overall design process throughou
 In addition, optimal usage of resources available was prioritized. For example, the limiting FPGA resource was the amount of digital signal processing slices (DSPs). Therefore, the FPGA design optimized the distribution of DSPs over other resources as opposed to saving an extra Block RAM (BRAM) block. 
 
 \section{Overall Architecture}
-In the hardware model, both the Zynq's PS and the FPGA were used to facilitate a cohesive and efficient architecture to accelerate neural network computation.  
+In the hardware model, both the Zynq's PS and the FPGA were used to facilitate a cohesive and efficient architecture to accelerate neural network computation. The overall system architecture can be seen in figure \ref{overall-arch}. 
+
+Through memory-mapped I/O, the PS transfers neural net hyperparameters, training data, and control signals to the FPGA. The FPGA transfers training statistics and state data back to the PS. The interface is further described in sections \ref{az-com} and \ref{mmio-lay}.
+
+Inside the FPGA, the neural network described in section \ref{net-arch} is implemented. Layers are connected in both forward and backward directions in order to support training. There are three types of primary modules in the top-level of the FPGA: fully-connected layers, interlayer activation buffers, and the softmax layer. In addition, there is a general control flow in the top-level with which all the primary modules interact.
 
 \begin{figure}
 	\centering 
@@ -36,23 +40,34 @@ In the hardware model, both the Zynq's PS and the FPGA were used to facilitate a
 \end{figure}
 
 \section{Module Architecture}
+As mentioned in the design goal section, one of the tenets of this design was to allow for modularity and parameterization, such that changing a network architecture would not require too much work. As such, there are a few global parameters defined, such as the amount of bits specified for the fixed-point precision. There are also parameters defined for each of the fully-connected layers. These parameters can all be found in the \textit{sys\_defs.vh} file in the Appendix \todo[inline]{fpga appendix}, or on GitHub. 
+
 
 \subsection{Fully-Connected Layers}
-
+The fully-connected layer modules implement both forward and backward passes. The general architecture is shown in figure \ref{fc-arch}. As DSP slices are limited, both the forward and backward computational units make use of the same resources to compute multiplications, known as the kernel pool. There are 4 modes of computation in the fully-connected layer: forward pass, backpropagating neuron gradients, computing weight gradients, and updating the weights. Of these 4 modes of computation, all except updating the weights make use of the kernel pool. This is because updating the weights makes uses of bit shifting instead of multiplication to multiply gradients by the learning rate.
 \begin{figure}
 	\centering 
 	\includegraphics[width=\textwidth]{figures/fully_connected_arch}
 	\caption{Architecture of the fully connected layer}\label{fc-arch}
 \end{figure}
 
+The forward pass multiplies weights and input activations to produce output activations. Backpropagating neuron gradients multiplies weights by current layer input gradients to produce previous layer gradients as output. The weight gradient computation mutliplies input activation from the forward pass by the current layer gradient, and then writing the computed gradient to the weight gradient BRAM. 
+
+Since being flexible and modular was one of the design goals, all the fully-connected layers use the same kernel and scheduler modules, with different parameters in the instantiation.
+
+\paragraph{Scheduling}
+Each of the computational modes needs to have a scheduler to generate addresses to be read and guide the computation. For this, the a generalized scheduler module was implemented. The scheduler uses two pointers starting from the head and middle of the BRAM, and iterates through the entirety during the forward pass. Since the weight BRAMs of each layer are different, certain parameters are assigned for instantiations of the scheduler.	
+\paragraph{Kernel}
 \begin{figure}
 	\centering 
 	\includegraphics[width=5in]{figures/kernel_arch}
 	\caption{Architecture of the kernel}\label{kernel-arch}
 \end{figure}
-\paragraph{Scheduler}
-\paragraph{Kernel}
+\todo[inline]{kernels per layer}
 \paragraph{BRAM Layout}
+\paragraph{Weight Updates}
+
+
 
 \subsection{Interlayer Architecture}
 \begin{figure}
@@ -78,9 +93,9 @@ In this equation,
 
 As explained in chapter \ref{background}, the softmax functions converts logits to probabilities in following manner
 
-\section{ARM-Zynq Communication}
-\section{Memory Map Layout}
-
+\section{ARM-Zynq Communication}\label{az-com}
+\section{Memory Map Layout}\label{mmio-lay}
+The memory 
 \section{Project Structure}
 
 
