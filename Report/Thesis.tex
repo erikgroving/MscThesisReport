@@ -30,6 +30,8 @@
 \usepackage{tikz}
 \usepackage{alltt}
 \usepackage{todonotes}
+\usepackage{url}
+\usepackage{textcomp}
 \usepackage{mathtools}
 \usepackage{pdfpages}
 \usepackage{amsmath}
@@ -44,7 +46,7 @@
 %==================================================================================================
 \def\thesisauthor{James Erik Groving Meade}                     %Author
 \def\thesistitle{Hardware Accelerator for the Training of Neural Networks}               %Title
-\def\thesishandin{27-June}                       %Submission date (Day-Month}
+\def\thesishandin{28-June}                       %Submission date (Day-Month}
 \def\thesisdegree{M.Sc.}                              %Degree ('B.Eng', 'B.Sc.', 'M.Sc.' or 'PhD')
 \def\thesisyear{2019}                               %Submission year
 \def\thesisnumber{????}                             %DTU-IMM Serial number (do not include year)
@@ -63,6 +65,7 @@
 %==================================================================================================
 \definecolor{mygreen}{RGB}{28,172,0} 
 \lstset{language=Verilog, 
+	captionpos=b,
 	basicstyle=\small\ttfamily,   
 	breaklines=true,
 	morekeywords={},
@@ -74,8 +77,24 @@
 	frame=single,
 	numbers=left,
 	numberstyle={\small \color{black}},
-	numbersep=9pt, 
+	numbersep=9pt
 }
+
+\lstdefinelanguage{SystemVerilog}{
+	keywords={always_ff, always_comb, if, begin, end, else, case, endcase, typedef, const, logic, integer, assign, parameter, localparam, module, posedge, negedge, enum, input, output},
+	keywordstyle=\color{blue}\bfseries,
+	ndkeywords={class, export, boolean, throw, implements, import, this},
+	ndkeywordstyle=\color{darkgray}\bfseries,
+	identifierstyle=\color{black},
+	sensitive=false,
+	comment=[l]{//},
+	morecomment=[s]{/*}{*/},
+	commentstyle=\color{mygreen}\ttfamily,
+	stringstyle=\color{mygreen}\ttfamily,
+	%morestring=[b]',
+	morestring=[b]"
+}
+
 
 
 \tikzstyle{every node}=[draw=black,thick,anchor=west]
@@ -132,7 +151,8 @@
 \chaptermark{Bibliography}
 \renewcommand{\sectionmark}[1]{\markright{#1}}
 \sectionmark{Bibliography}
-\addcontentsline{toc}{chapter}{Bibliography}        %Force addition of Bibliography to TOC
+\addcontentsline{toc}{chapter}{Bibliography}        %Force addition of Bibliography to TO
+
 \bibliographystyle{alpha}                           %Use alpha codes for references
 \bibliography{References}                           %Bibliography file called
 \end{document}
