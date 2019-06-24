@@ -22,7 +22,7 @@ The classical MNIST handwritten digit dataset was chosen as the problem setting 
 	\label{net-arch-table}
 \end{table}
 
-Note that in this implementation, while biases are supported for forward computation, they are not used as the MNIST dataset is already fairly normalized. As such, the biases read are always 0 during the forward pass, and during the backward pass, no updates or gradients are calculated for the bias. Note that the gradient of the bias would just be the gradient of the neuron, unless the neuron had a ReLU activation function with negative net, so implementing this update would be trivial as all neuron gradients are already calculated. 
+Note that in this implementation, while biases are supported for forward computation, they are not used as the MNIST dataset is already fairly normalized. As such, the biases read are always 0 during the forward pass, and during the backward pass, no updates or gradients are calculated for the bias. Note that the gradient of the bias would just be the gradient of the neuron, unless the neuron had a ReLU activation function with negative net, so implementing this update would be trivial as all neuron gradients are already calculated. In addition, the current implementation only supports training with a batch size of 1.
 
 
 \section{Design Goals}
@@ -43,13 +43,15 @@ Inside the FPGA, the neural network described in section \ref{net-arch} is imple
 	\caption{Architecture of the hardware accelerator}\label{overall-arch}
 \end{figure}
 
+\section{Training Process}
+
+
+
 \section{Computational Precision}
 In this implementation, a bit-width of 18 was chosen for all weight gradients and activations. This value was chosen because the multiplication portion of DSP slices have an input multiplicands with bit widths of 25 and 18 \todo[inline]{cite dsp}. This thesis uses the Q number format to define precision types. For example, Q10.6 would mean that a 16-bit value has 10 integer bits and 6 fractional bits \cite{q-format}. For this accelerator, activations have a precision of Q6.12. Weights and weight gradients both have a precision of Q1.17. These values were chosen through experimental analysis of minimum and maximum activation, weight, and gradients values using the software model described in chapter \ref{ch-sw-model}.
 
 \section{Module Architecture}
 As mentioned in the design goal section, one of the tenets of this design was to allow for modularity and parameterization, such that changing a network architecture would not require too much work. As such, there are a few global parameters defined, such as the amount of bits specified for the fixed-point precision. There are also parameters defined for each of the fully-connected layers. These parameters can all be found in the \textit{sys\_defs.vh} file in the Appendix \todo[inline]{fpga appendix}, or on GitHub. 
-
-
 
 \subsection{Fully-Connected Layers}
 The fully-connected layer modules implement both forward and backward passes. The general architecture is shown in figure \ref{fc-arch}. As DSP slices are limited, both the forward and backward computational units make use of the same resources to compute multiplications, known as the kernel pool. There are 4 modes of computation in the fully-connected layer: forward pass, backpropagating neuron gradients, computing weight gradients, and updating the weights. Of these 4 modes of computation, all except updating the weights make use of the kernel pool. This is because updating the weights makes uses of bit shifting instead of multiplication to multiply gradients by the learning rate.
@@ -105,24 +107,153 @@ Finally, the bottom output is the net output calculated during the forward pass.
 
 Since the forward pass multiplies Q6.12 activations by Q1.17, the multiplied result is 36-bits, Q7.29. Since for some layers fan-in can be quite large, extra precision is used during the accumulation phase. The accumulated sum uses 32 bits: Q6.26, thus the internal sum must be checked for saturation and truncation of the bottom 3 bits for each MAC. The conversion from the internal sum precision of Q6.26 to the net output of Q6.12 is a simple truncation of the bottom 14 bits.
 
-With this amount of internal precision during the forward pass, truncation during the internal summation has much less effect on the precision than the final truncation to 18 bits for when the neuron net is computed. The largest fan-in in this network is 784 in the FC0 layer. For each internal MAC, the 27th fractional bit onward is truncated when converted from the product with precision Q7.29 to the internal sum precision of Q6.26. Assuming that the 27th bit equally probable to be 0 or 1, then the 27th bit is 1 approximately half of the time. This means that the average truncation per MAC is $0.5 \times 2^{-27} = 2^{-28}$. Given the 784 MACs of layer FC0, the expected truncation error is $784 \times 2^{-28} = 2.92\times{10^{-6}}$. The final truncation error from Q6.26 to Q6.12 truncates from the 13th fractional bit, resulting in an expected truncation error of $2^{-14} = 6.1\times10^{-5}$. Thus, truncation error from internal summation is expected to be more than 20 times less than the truncation to the 18-bit net output. Therefore, truncation error is successfully minimized during the internal summation of net computation during the forward pass.
-\todo[inline]{should this go in the analysis section? yeah probably}
+With this amount of internal precision during the forward pass, truncation error during the internal summation is sufficiently minimized. This is because the largest fan-in in this network is 784 in the FC0 layer. For each internal MAC, the 27th fractional bit onward is truncated when converted from the product with precision Q7.29 to the internal sum precision of Q6.26. Assuming that the 27th bit equally probable to be 0 or 1, then the 27th bit is 1 approximately half of the time. This means that the average truncation per MAC is $0.5 \times 2^{-27} = 2^{-28}$. Given the 784 MACs of layer FC0, the expected truncation error is $784 \times 2^{-28} = 2.92\times{10^{-6}}$. The final truncation error from Q6.26 to Q6.12 truncates from the 13th fractional bit, resulting in an expected truncation error of $2^{-14} = 6.1\times10^{-5}$. Note that worst-case error is simply double the expected error, since it would assume that a 1-bit is truncated every time. Thus, truncation error from internal summation is expected to be more than 20 times less than the truncation to the 18-bit net output. Therefore, truncation error is successfully minimized during the internal summation of net computation during the forward pass.
 
-
-
-\paragraph{BRAM Layout}
+The kernel is parameterized to support reuse in all the layers. The kernel has 2 parameters that are specified upon instantiation: neuron fan-in and the amount of bits needed to represent a neuron ID in the layer.
 
 \paragraph{Weight Updates}
+During the weight update phase, scaled weight gradients are added to the corresponding weight. This phase is implemented by iterating over the weight BRAM and weight gradient BRAM in the fully-connected layers. Scaling down the gradient by a learning rate is accomplished by using right bitshifts, which allows for efficient computation without any real sacrifice in training accuracy, as learning rates are generally arbitrary; frequently chosen as some power of 10.
+
+One update phase takes two cycles. In the first cycle, the weights and their corresponding gradients for an address are read from the BRAMs. In the second cycle, the gradient is scaled down using bitshifting and added to the weight. The result is then written to the weight BRAM in the same cycle. The address will then be incremented and the process continues until all weights have been updated. The control logic is implemented by simply using a counter. The address to the BRAM contains all the bits except the bottom bit, so the address is incremented once every 2 cycles. The bottom bit of the counter is used to indicate the update phase and determine read and write enables on the BRAMs.
 
 \subsubsection{Individual Fully-Connected Layer Implementation}
-While the modules used for the 
+While the scheduler and kernels are the same across fully-connected layers, the weight BRAM specifications are not, since number of neurons, kernels and fan-in are different for each layer. For this reason, all fully-connected layers needed to have separate files defining them. If the weights and gradients were loaded and stored to from DRAM instead of BRAM, then the fully-connected layer could be parameterized.
 
+\paragraph{Kernels Per Layer}
+Given that the layers all have different amounts of MACs, the amount of computational kernels to allocate to each layer should be balanced to roughly even out the amount of cycles the computational phases require. There are 220 DSP slices available on the FPGA, and each kernel uses 1 DSP slice. In this design, 215 kernels were instantiated and the distribution is shown in table \ref{dsp-alloc}. The mathematical reasoning for this allocation is discussed in Chapter \ref{analysis}.
+\begin{table}
+	\centering
+	\begin{tabular}{| c | c |}
+		\hline
+		\textbf{Layer} & \textbf{\# Kernels} \\\hline
+		FC0 & 196 \\\hline 
+		FC1 & 16 \\\hline 
+		FC2 & 2 \\\hline	
+		Total & 214 \\\hline	
+	\end{tabular}
+	\caption{Kernel allocation for the fully-connected layers in this implementation}
+	\label{dsp-alloc}
+\end{table}
+
+\paragraph{Weight BRAM Initialization}
+The BRAMs cannot be initialized with all 0 values as that devolve to being a linear classifier since all weights would have the same gradients, as explained in Chapter \ref{background}. Therefore, the weight BRAMs have been pre-initialized with values generated using He Initialization \cite{HeZR015}. The BRAMs are configured using Xilinx coefficient (COE) files. The initialization is performed using floating point, converted to Q1.17 binary format, and then written to a file in COE format using a python script. This script, \texttt{weight\_coeff.py} may be found in Appendix \todo[inline]{appendix for this} or in the \textit{misc} folder of the github repository.
+
+\paragraph{BRAM Structure}
+The memory storage and throughput requirements differed between the layers. As such, the weight and gradient BRAMs are organized differently. All the BRAMs use the true-dual port RAM configuration of the Xilinx Block Memory Generator IP Core, version 8.4. Each of the layers run be able to read 1 weight per kernel per cycle during computational steps to prevent kernels from idling. Note that the weight and gradient BRAMs are organized in the same way.
+
+The FC0 layer has 196 kernels and 98 neurons, thus 196 weights need to be read per cycle.  This is accomplished by having two ports of width 98 weights wide. A weight is 18 bits, so the word length for each port is 1,764 bits wide. Furthermore, since the fan-in of each neuron is 784 ($28 \times 28$), there are 784 words in this BRAM. In total, the FC0 layer requires 49 36K BRAMs for the weights and the gradients each, or 98 total. The BRAM layout is shown in table \ref{fc0-bram}. The format for the weights listed in the word content is $w_{(i, j)}$, which meaning weight $i$ of neuron $j$.
+\begin{table}
+	\centering
+	\begin{tabular}{|c|c|}
+		\hline
+		\textbf{Address} & \textbf{Word Content} \\\hline
+		0 & $w_{(0, 0)}w_{(0, 1)}\cdots w_{(0, 96)}w_{(0, 97)}$\\
+		1 & $w_{(1, 0)}w_{(1, 1)}\cdots w_{(1, 96)}w_{(1, 97)}$\\
+		2 & $w_{(2, 0)}w_{(2, 1)}\cdots w_{(2, 96)}w_{(2, 97)}$\\
+		$\cdots$ & $\cdots$ \\
+		782 & $w_{(782, 0)}w_{(782, 1)}\cdots w_{(782, 96)}w_{(782, 97)}$\\
+		783 & $w_{(783, 0)}w_{(783, 1)}\cdots w_{(783, 96)}w_{(783, 97)}$\\\hline
+	\end{tabular}
+	\caption{FC0 BRAM layout}	
+	\label{fc0-bram}
+\end{table}
+
+The FC1 layer has 16 kernels and 64 neurons. 16 weights must be read each cycle to supply the neurons, so two ports of width 8 words are used. This means that the bitwidth of each port is 144 bits. The fan-in of each of the 64 neurons is 98, so there are 784 ($\frac{64\times98}{8}$) words in each BRAM for the weights and gradients. This results in needing eight 36K BRAMs for the FC1 layer. The first 98 words contain the weights for neurons 0-7. The subsequent 98 weights contain the weights for neurons 8-15. This continues through the entire contents of the BRAM, concluding with the last 98 words containing the weights for neurons 56-63. Since not every neuron is represented in every word, the memory layout is slightly different and shown in table \ref{fc1-bram}.
+
+\begin{table}
+	\centering
+	\begin{tabular}{|c|c|}
+		\hline
+		\textbf{Address} & \textbf{Word Content} \\\hline
+		0 & $w_{(0, 0)}w_{(0, 1)}\cdots w_{(0, 6)}w_{(0, 7)}$\\
+		1 & $w_{(1, 0)}w_{(1, 1)}\cdots w_{(1, 6)}w_{(1, 7)}$\\
+		$\cdots$ & $\cdots$ \\
+		97 & $w_{(97, 0)}w_{(97, 1)}\cdots w_{(97, 6)}w_{(97, 7)}$\\
+		& \\
+		98 & $w_{(0, 8)}w_{(0, 9)}\cdots w_{(0, 14)}w_{(0, 15)}$\\		
+		99 & $w_{(1, 8)}w_{(1, 9)}\cdots w_{(1, 14)}w_{(1, 15)}$\\
+		$\cdots$ & $\cdots$ \\
+		195 & $w_{(97, 8)}w_{(97, 9)}\cdots w_{(97, 14)}w_{(97, 15)}$\\	
+		& \\	
+		196 & $w_{(0, 16)}w_{(0, 17)}\cdots w_{(0, 22)}w_{(0, 23)}$\\		
+		197 & $w_{(1, 16)}w_{(1, 17)}\cdots w_{(1, 22)}w_{(1, 23)}$\\
+		$\cdots$ & $\cdots$ \\
+		293 & $w_{(97, 16)}w_{(97, 17)}\cdots w_{(97, 22)}w_{(97, 23)}$\\	
+		& \\
+		$\cdots$ & $\cdots$ \\	
+		& \\
+		686 & $w_{(0, 56)}w_{(0, 57)}\cdots w_{(0, 62)}w_{(0, 63)}$\\		
+		687 & $w_{(1, 56)}w_{(1, 57)}\cdots w_{(1, 62)}w_{(1, 63)}$\\
+		$\cdots$ & $\cdots$ \\	
+		783 & $w_{(97, 56)}w_{(97, 57)}\cdots w_{(97, 62)}w_{(97, 63)}$\\
+		\hline
+	\end{tabular}	
+	\caption{FC1 BRAM layout}	
+	\label{fc1-bram}
+\end{table}
+
+The FC2 layer is the smallest fully-connected layer in this hardware model, containing 10 neurons each with a fan-in of 64. There are 2 kernels, so each port on the BRAM has a word width equal to 1 weight, or 18 bits. The depth of the BRAM is 640, and can be entirely contained within one 36K BRAM. The layout is shown in table \ref{fc2-bram}.
+
+\begin{table}
+	\centering
+	\begin{tabular}{|c|c|}
+		\hline
+		\textbf{Address} & \textbf{Word Content} \\\hline
+		0 & $w_{(0, 0)}$\\
+		1 & $w_{(0, 1)}$\\
+		$\cdots$ & $\cdots$ \\			
+		63 & $w_{(0, 63)}$\\
+		& \\
+		64 & $w_{(1, 0)}$ \\
+		65 & $w_{(1, 1)}$ \\
+		$\cdots$ & $\cdots$ \\	
+		127 & $w_{(1, 63)}$\\
+		& \\
+		$\cdots$ & $\cdots$ \\	
+		& \\ 
+		576 & $w_{(9, 0)}$ \\
+		577 & $w_{(9, 1)}$ \\
+		$\cdots$ & $\cdots$ \\			
+		639 & $w_{(9, 63)}$ \\
+		\hline
+	\end{tabular}	
+	\caption{FC2 BRAM layout}	
+	\label{fc2-bram}
+\end{table}
 
 \subsection{Interlayer Architecture}
+In this implemented hardware model, activations stored in interlayer buffers are stored directly in flipflops. This is because there are only 98 activations from FC0 to FC1 and 64 from FC1 to FC2. This results in 162 18-bit activations being stored in interlayer activation buffers, far within the resource limitations of the FPGA.  The interlayer activation buffer module is also parameterized, so both buffers use the same SystemVerilog file. There are 5 parameters to be provided upon instantiation of the module, shown in table \ref{interlayer-arch-params}.
+
+\begin{table}
+	\centering
+	\begin{tabularx}{\textwidth}{|l| X|}
+		\hline
+		\textbf{Parameter Name}	& \textbf{Brief Description}\\\hline
+		\texttt{N\_KERNELS\_I} & 
+		The width of the input write port. This is equivalent to the number of kernels of the previous layer. \\\hline
+		
+		\texttt{N\_KERNELS\_O} & 
+		The width of the output read port. This is equivalent to the number of kernels in the next layer after the buffer.\\\hline
+		
+		\texttt{ID\_WIDTH} &
+		The amount of bits needed to represent a neuron of the previous layer.\\\hline 
+		
+		\texttt{BUFF\_SIZE} &
+		The amount of entries in the buffer. \\\hline 
+		
+		\texttt{LOOPS} &
+		Amount of times the buffer needs to be looped through for the next layer after the buffer to finish its computation.
+		\\\hline
+	\end{tabularx}	
+	\caption{Parameters required for instantiation of the interlayer activation buffer.}
+	\label{interlayer-arch-params}
+\end{table}
+
+The architecture of the interlayer activation buffer is shown in figure \ref{interlayer-arch}. There is one write port which has a write width of \texttt{N\_KERNELS\_I} words. There are two read ports. The top one has a read width of \texttt{N\_KERNELS\_O} words and is used during the forward pass. The bottom one has a read width of 1 word and is used during the backward pass, particularly during the weight-gradient calculation phase.
 \begin{figure}
 	\centering 
 	\includegraphics[width=\textwidth]{figures/interlayer_buffer}
-	\caption{The interlayer buffer}\label{softmax-arch}
+	\caption{The interlayer buffer}\label{interlayer-arch}
 \end{figure}
 
 \subsection{Softmax Layer}
@@ -140,9 +271,9 @@ To have training be feasible, a proper loss function was required to calculate i
 \mathcal{L}(y) = - \sum_{i = 1}^{C}y_{i,c}\log(p_{i,c})
 \end{align}
 In this equation, 
-\todo[inline]{Consider against the cross entropy loss defined in chapter 3, define it in chapter 2 IMO}
+\todo[inline]{Consider against the cross entropy loss defined in Chapter 3, define it in chapter 2 IMO}
 
-As explained in chapter \ref{background}, the softmax functions converts logits to probabilities in following manner
+As explained in Chapter \ref{background}, the softmax functions converts logits to probabilities in following manner
 
 \section{PS-FPGA Communication}\label{az-com}
 ps master fpga slave
@@ -222,7 +353,6 @@ The memory map may be extended easily by adding or modifying address definitions
 \end{table}
 
 
-\section{Training Cycle Dataflow}
 
 \section{Project Structure}
 
