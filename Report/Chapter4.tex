@@ -43,9 +43,18 @@ Inside the FPGA, the neural network described in section \ref{net-arch} is imple
 	\caption{Architecture of the hardware accelerator}\label{overall-arch}
 \end{figure}
 
+
 \section{Training Process}
+The training process begins with the PS writing a 1 to the \texttt{start} register. This signals to the FPGA to start training whenever data becomes available. From the FPGA side, if the image in MMIO has ID equal to the FPGA's current image ID plus 1 (modulo image set size), then the image is ready.  Otherwise, the FPGA will wait for the next image to be written. This process is summed up in Figure \ref{ps-pl-training-process}. The FPGA loops back around to 0 once the image set size is reached. The image set size is assigned via MMIO. 
 
+When the FPGA has processed the last image in the set during an epoch, the epoch counter is incremented and training stats will be available for the PS to read. If the epoch counter has reached the set number of training epochs, then training will stop, otherwise, the next training epoch will begin. 
 
+\begin{figure}
+	\centering 
+	\includegraphics[width=3.5in]{figures/training_process_ps_pl}
+	\caption{The high-level control flow of the training process}
+	\label{ps-pl-training-process}
+\end{figure}
 
 \section{Computational Precision}
 In this implementation, a bit-width of 18 was chosen for all weight gradients and activations. This value was chosen because the multiplication portion of DSP slices have an input multiplicands with bit widths of 25 and 18 \todo[inline]{cite dsp}. This thesis uses the Q number format to define precision types. For example, Q10.6 would mean that a 16-bit value has 10 integer bits and 6 fractional bits \cite{q-format}. For this accelerator, activations have a precision of Q6.12. Weights and weight gradients both have a precision of Q1.17. These values were chosen through experimental analysis of minimum and maximum activation, weight, and gradients values using the software model described in chapter \ref{ch-sw-model}.
@@ -253,30 +262,63 @@ The architecture of the interlayer activation buffer is shown in figure \ref{int
 \begin{figure}
 	\centering 
 	\includegraphics[width=\textwidth]{figures/interlayer_buffer}
-	\caption{The interlayer buffer}\label{interlayer-arch}
+	\caption{The interlayer activation buffer}\label{interlayer-arch}
 \end{figure}
 
 \subsection{Softmax Layer}
+To implement training of the neural network, meaningful gradients needed to be calculated for the output layer neurons. Cross-entropy loss, one of the most popular loss functions in deep learning, was chosen for this network. As such, the softmax function (also described in Chapter \ref{background}) needed to be implemented. The softmax function is shown again in equation \ref{sm-func-impl} for convenience.
+\begin{align}
+\sigma(\mathbf{x})_i = \frac{e^{x_i}}{\Sigma_{j=1}^C e^{x_j}} \label{sm-func-impl}
+\end{align}
+
+The dataflow of the softmax layer is shown in figure \ref{softmax-arch}. The softmax layer has 10 inputs in this network for MNIST digit classification. This layer is fully pipelined, so while there is a relatively long latency, the computation can still be performed quickly. 
+
+The implemented softmax function is also referred to as a numerically stable softmax. By subtracting a constant from the exponents, the final probabilities will not be affected. This is why the first step of the softmax layer is to subtract the maximum value input from all inputs. This then results in low, stable exponents being fed to the exponential function. 
+
+Since there is no support for the exponential function using fixed-point inputs in the Xilinx IP core repository, logits are first converted to 32-bit floating point numbers. After this, the exponential function for each input is calculated. The $e^x$ core uses 1 DSP slice. The exponential function output is then converted from floating point back to fixed point. At this point, $e^x$ is known for all the inputs, so all the numerators required for $\sigma(\mathbf{x})_i$ are known. To calculate the denominator, these values must also be summed up, so this occurs in the next stage of the layer. Finally, the numerators are divided by this denominator to finish the softmax process of converting the outputs from logits to probabilities.
 \begin{figure}
 	\centering 
-	\includegraphics{figures/softmax}
+	\includegraphics[height=\textheight]{figures/softmax}
 	\caption{Architecture of the softmax layer}\label{softmax-arch}
 \end{figure}
 
-To have training be feasible, a proper loss function was required to calculate initial gradients for the output neurons. As such, cross entropy loss, one of the most popular loss functions in deep learning was chosen for this network. Cross-entropy loss is a statistical loss that uses probabilities as input, as shown below.
 
+\section{PS -- FPGA Communication}\label{az-com}
 
+The processing system and the FPGA communicate via an AXI4 bus. In this AXI bus, the PS is the master and the FPGA is the slave. 
 
-\begin{align}
-\mathcal{L}(y) = - \sum_{i = 1}^{C}y_{i,c}\log(p_{i,c})
-\end{align}
-In this equation, 
-\todo[inline]{Consider against the cross entropy loss defined in Chapter 3, define it in chapter 2 IMO}
+\subsection{AXI Implementation for the PS}
+From the PS side, communication is performed as shown by the highlighted red line in figure \ref{ps-con}. The AXI communication base address is 0x40000000 and spans until 0x7FFFFFFF. Having done this, by mapping a pointer to this location on \textit{/dev/mem}, data that is written to or read from addresses within this region of memory will invoke an AXI bus transaction. This was set up by adding the \textit{Zynq7 Processing System Version 5.5} IP core to a block diagram in Vivado, and defining an address range in the address editor as shown in Figure \ref{addr-editor}. 
 
-As explained in Chapter \ref{background}, the softmax functions converts logits to probabilities in following manner
+\begin{figure}
+	\centering 
+	\includegraphics[width=\textwidth]{figures/ps-pl-conn}
+	\caption{Communication from the PS to the FPGA}\label{ps-con}
+\end{figure}
 
-\section{PS-FPGA Communication}\label{az-com}
-ps master fpga slave
+\begin{figure}
+	\centering 
+	\includegraphics[width=\textwidth]{figures/address_editor}
+	\caption{Specifying the Address Range for the AXI Bus}\label{addr-editor}
+\end{figure}
+
+Once the address range and Zynq IP core has been added to the block diagram, C code to run on the PS must be written. There are only 2 things that need to be done to be able to start performing AXI bus transactions. The first step is to create a file handle by opening \textit{/dev/mem} with the proper flags set. Then one only needs to memory map a pointer to this region. In the example shown in Listing \ref{mmap-c}, the pointer is of type volatile, because the order of reads and writes is critical during the training process when images are transferred to the FPGA.
+\begin{lstlisting}[
+caption={Code to allow the PS to perform AXI transactions with the FPGA}, label={mmap-c}, language=C, upquote=true]
+int handle = open("/dev/mem", O_RDWR | O_SYNC); 
+volatile ddr_data_t* ddr_ptr = mmap(NULL, 134217728, PROT_READ | PROT_WRITE, MAP_SHARED, handle, 0x40000000);
+\end{lstlisting}
+
+\subsection{AXI Implementation for the FPGA}
+To implement the FPGA side of AXI commmunication, a block diagram to interface with the \textit{Zynq7 Processing System} was created. Next, a custom IP core was created using Vivado's base AXI4 slave and then customized to meet the design needs of the project. The block diagram was then completed as shown in Figure \ref{system-bd}. As can be seen, the Zynq's master AXI output is connected to an AXI interconnect which is then connected to the AXI slave port of the custom AXI module. Once the block diagram is complete, a wrapper for the block-diagram was generated and instantiated inside the top module of the design.
+
+\begin{figure}
+	\centering 
+	\includegraphics[width=\textwidth]{figures/fpga_axi_block}
+	\caption{Block diagram to establish connection from the FPGA side to the AXI bus from the PS}\label{system-bd}
+\end{figure}
+
+The final part of the FPGA AXI implementation was to modify the generated AXI module. The module was generated in Verilog, so it differed slightly from the rest of the SystemVerilog project. It is also for this reason that there are 196 separate 32-bit registers to contain image data, since Verilog does not support 2D packed arrays as ports to modules. The Verilog code for implementing the memory map described in section \ref{mmio-lay} is included in Appendix \todo[inline]{verilog appendix}.
 
 \subsection{Memory Map Layout}\label{mmio-lay}
 The memory map may be extended easily by adding or modifying address definitions to the AXI slave connected to the PS in the FPGA. In the PS code, one only need modify the \texttt{ddr\_data} struct definition found in the C files of the PS source code. The memory map layout is defined in table \ref{tbl:mmio}. All addresses have a base address of 0x40000000. Note that values with addresses starting from 0x0 to 0x18 are registers written to by the FPGA. Values with addresses starting from 0x1C until 0x343 are written to by the PS. Output data from the FPGA is provided in the address range of 0x344 -- 0x358.
@@ -352,51 +394,14 @@ The memory map may be extended easily by adding or modifying address definitions
 	\label{tbl:mmio}
 \end{table}
 
+\section{PetaLinux}
+The boot image on the SD card has been modified to run Xilinx's PetaLinux. This was done by using the 2016.4 prebuilt PetaLinux image as a base from Xilinx's PetaLinux website \cite{petalinux}. The image has been slightly modified by changing the \textit{/etc/init.d/rcS} file to have the PS acquire a certain IP address and to mount the SD card to the filesystem. The \textit{BOOT.bin} for booting Petalinux on the PS is created by writing a first stage bootloader \textit{elf} file created by the Xilinx SDK for the Vivado project, the bitstream generated by Vivado, and the \textit{u-boot.elf} file from the 2016.4 PetaLinux image. The boot image is created by using Xilinx SDK's ``Create Boot Image'' utility. Aside from these changes to the 2016.4 SD card image, the other files in the image are not changed.
 
+\paragraph{Cross-Compiling for PetaLinux}
+Since the PS is an ARM-based processor, all C code for this project must be cross-compiled before it can be run on the PS. This is done by using the Linaro cross-compiling toolchain. A C file may be compiled to run on the PS using the below command.
+\begin{lstlisting}
+> arm-linux-gnueabi-gcc <source_file> -o <executable>
+\end{lstlisting}
 
 \section{Project Structure}
-
-
-\begin{figure}
-	\begin{tikzpicture}[]
-	\node[] at (0,0) (top) {neural\_net\_top.sv};
-	\node[] at (3, -1) (mlled) {fc0\_layer.sv};
-	\node[] at (3, -2) (debounce) {debounce.v};
-	\node[] at (3, -3) (scope) {red\_pitaya\_scope.v};
-	\node[] at (3, -4) (buffermodule) {buffer\_module.v};
-	\node[] at (3, -5) (irf) {internal\_ref\_gen.xci};
-	\node[] at (3, -6) (pfd) {pfd.v};
-	\node[] at (6, -7) (pfdblock) {pfd\_block.v};
-	\node[] at (6, -8) (pfdfilter) {pfd\_filter.v};
-	\node[] at (3, -9) (freqcounter) {freq\_counter.v};
-	\node[] at (6, -10) (freqcounterblock) {freq\_counter\_block.v};
-	\node[] at (9, -11) (interp) {freq\_interp\_clk.xci};
-	\node[] at (3, -12) (pid) {red\_pitaya\_pid.v};
-	\node[] at (6, -13) (pidblock) {imra\_pid\_block.v};
-	\node[] at (6, -14) (pidfilt) {iir\_filter.v};
-	\node[] at (3, -15) (analog) {red\_pitaya\_analog.v};
-	\node[] at (6, -16) (dds) {dds/mixer/lpf};
-	
-	
-	\draw [->] (top) |- (mlled.west);
-	\draw [->] (top) |- (debounce.west);
-	\draw [->] (top) |- (scope.west);
-	\draw [->] (top) |- (buffermodule.west);
-	\draw [->] (top) |- (irf.west);
-	\draw [->] (top) |- (pfd.west);
-	\draw [->] (top) |- (freqcounter.west);
-	\draw [->] (top) |- (pid.west);
-	\draw [->] (top) |- (analog.west);
-	\draw [->] (pfd) |- (pfdblock.west);
-	\draw [->] (pfd) |- (pfdfilter.west);
-	\draw [->] (freqcounter) |- (freqcounterblock.west);							
-	\draw [->] (freqcounterblock) |- (interp.west);
-	\draw [->] (pid) |- (pidblock.west);
-	\draw [->] (pid) |- (pidfilt.west);
-	\draw [->] (analog) |- (dds.west);
-	
-	
-	
-	\end{tikzpicture}
-	\caption{Hierarchy of the FPGA code used for the implementation of the network.}
-\end{figure}
+\todo[inline]{Ask if this is actually something I should do. Probably more documentation-y than implementation}
