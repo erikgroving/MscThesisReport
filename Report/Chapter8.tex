@@ -1,0 +1,24 @@
+\chapter{Discussion}
+
+
+\section{Main Takeaways of the Thesis}
+
+\section{Future Work}
+While the potential for application-specific hardware accelerators training has been demonstrated in this thesis, there is a fair bit of work that would need be done to 
+
+\paragraph{Increased Precision}
+As was demonstrated in the results section, training a neural network requires high precision computation. This is especially true for deeper neural networks as a result of the vanishing gradient problem.
+
+\paragraph{Larger Batch Sizes}
+Many datasets converge faster using a larger batch size. In addition, a larger batch size provides a more accurate gradient of the actual loss function of the training set. Using a larger batch size would also open up the possibility to taking advantage of data-level parallelism and using an array of training accelerators. 
+
+\paragraph{Additional Layer Types}
+
+\paragraph{Additional Activation Functions}
+In both the software and hardware models for this project, the ReLU function was chosen specifically due to its computational simplicity, quick convergence during training, and its ability to frequently converge to a good solution. That being said, there are still many other activation functions in the realm of neural networks that also achieve strong training results. With varying datasets and network architectures, the most optimal activation function may also change. Other functions such as the sigmoid function, leaky ReLU, hyperbolic tangent, and many other could all be more optimal under certain circumstances. These functions would require extra hardware support though, and thus would require more computational resources to implement. As a result, one should expect that the speedup of the accelerator would not be quite so high as with the ReLU activation function.
+
+\paragraph{Implement Streaming DDR Interface for FPGA}
+
+\paragraph{Generated HDL for a Pre-Specified Network Architecture}
+
+\paragraph{ASIC Design}

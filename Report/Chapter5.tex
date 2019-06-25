@@ -1,5 +1,5 @@
 \chapter{Hardware Model Testing and Verification}
-Verification is a vital part of hardware design. For this project, all relevant functionality in the FPGA was verified by simulation or by using MMIO in real-time.
+Verification is a vital part of hardware design. For this project, all relevant functionality in the FPGA was verified by simulation.
 \section{Simulation}
 During FPGA development, four different testbenches were created to test the functionality of the design. The first three were module level testbenches to test the scheduler, fully-connected layer, and softmax layers. The fourth testbench tests the entire FPGA design, thus verification of the fourth testbench means that all modules are functional. Therefore, this section will discuss verification of the fourth testbench, which is a full test of the network: \texttt{neural\_net\_top\_tb.sv}, found in the directory \textit{FPGA/FPGA.srcs/sim\_1/new} of the GitHub repository as well as in Appendix \todo[inline]{appendix for testbenches}.
 
@@ -101,19 +101,37 @@ Neuron		Activation      Neuron		Activation
 \end{lstlisting}
 
 \paragraph{Backward Pass Verification}
-The backward pass was verified in the same way as the forward pass, though there are many more gradients than outputs. There is 1 gradient for each neuron and weight, totalling over 80,000 gradients. As with the forward pass, all 80,000 gradients may be viewed and confirmed in the \textit{HW\_Verification} folder of the GitHub repository.
+The backward pass was verified in the same way as the forward pass, though there are many more gradients than outputs. There is 1 gradient for each neuron and weight, totalling over 80,000 gradients. The forward pass outputs and backward pass gradients can be seen in their entirety in the \textit{hardware\_verification} folder of the GitHub repository.
 
-Listing \ref{rand-weight-gradients} shows randomly selected weight gradients from each of the fully-connected layers. The weight gradients depend on the neuron gradients, thus the neuron gradients for that layer must be correct for the weight gradients to be correct.
+The gradients in the backward pass all stem from the output layer gradients which come from the softmax function. The steps for deriving the gradients of the output layer is a softmax based neural network are explained in more detail in Chapter \ref{background}, though the gradients are essentially the softmax output visible in Listing \ref{sm-forward} except that the neuron representing the inputs class label is subtracted by 1. 
+
+Listing \ref{rand-weight-gradients} shows randomly selected weight gradients from each of the fully-connected layers. The weight gradients depend on the neuron gradients, thus the neuron gradients for that layer must be correct for the weight gradients to be correct; because of this, only weight gradients are shown in the figure, though neuron gradients are also available for viewing in the \textit{hardware\_verification} folder. As can be seen, the gradients are calculated to relatively high accuracy. This level of accuracy is directly correlated to the fact that the gradients are all Q1.17, maximizing the amount of fractional bits. Note that the 1 integer bit is required to represent the output layer gradient (since the input class label neuron is subtracted by 1), so the radix cannot be moved any further.
+
 
 \begin{lstlisting}[
 caption={5 randomly selected weight gradients from each of the fully connected layers}, label={rand-weight-gradients}, language=SystemVerilog, upquote=true, numbers=none]
 SIMULATION                  PYTHON SCRIPT
-Layer FC0
-Neuron	Weight	Gradient	Neuron	Weight Gradient
-Layer FC1
-Neuron	Weight	Gradient	Neuron	Weight Gradient
-Layer FC2
-Neuron	Weight	Gradient	Neuron	Weight Gradient
-\end{lstlisting}
+FC0
+Neuron	Weight	Gradient	Neuron	Weight 	Gradient
+09 		593 	0.000763    09   	593 	0.00076932259
+19 		711 	0.006874    19 		711	 	0.00688892029
+37 		412    -0.006149    37  	412    -0.00613842723
+57 		128 	0.000610    57  	128 	0.00061567956
+74 		485    -0.000282    74  	485    -0.00027281649
 
-\section{MMIO}
+FC1
+Neuron	Weight	Gradient	Neuron	Weight 	Gradient
+02 		051    -0.003815    02   	051    -0.00380934976
+19 		097    -0.019463    19  	097    -0.01948172921
+24 		035    -0.013214    24  	035    -0.01325251269
+37 		094 	0.016045    37  	094  	0.01610831241
+51 		030 	0.016563    51  	030  	0.01659535729
+
+FC2
+Neuron	Weight	Gradient	Neuron	Weight 	Gradient
+01  	043 	0.015907    01 		043 	0.01595727359
+03  	002 	0.016861    03 		002  	0.01688975169
+04  	057 	0.005745    04 		057 	0.00578264697
+08  	023 	0.024437    08 		023 	0.02451471064
+09  	024 	0.000542    09 		024 	0.00055094484
+\end{lstlisting}
