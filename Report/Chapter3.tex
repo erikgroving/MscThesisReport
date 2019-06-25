@@ -2,7 +2,7 @@
 \label{ch-sw-model}
 \todo[inline]{figure for code snippets or nah?}
 \section{Overview}
-This section documents the general-purpose neural network framework that was written in C++ for this thesis. There is an example program that trains on the MNIST dataset and documents epoch-by-epoch training statistics. MNIST is a dataset of handwritten digits, containing 60,000 training images and 10,000 test images. The source code for the software model can be found in the appendix as well as online on github.\footnote{\url{
+This section documents the general-purpose neural network framework that was written in C++ for this thesis. There is an example program that trains on the MNIST dataset and documents epoch-by-epoch training statistics. MNIST is a dataset of handwritten digits, containing 60,000 training images and 10,000 test images. The source code for the software model can be found in the appendix as well as online on GitHub.\footnote{\url{
 https://github.com/erikgroving/NeuralNetworkHardwareAccelerator/tree/master/SWModel}.}
 
 
@@ -286,7 +286,7 @@ net.addLayer(fc1);
 
 
 \subsection{Building and Running the Test Suites}
-The test suites requires Google Test to compile. Google Test can be downloaded online at github \footnote{\url{https://github.com/google/googletest}}. The \textit{googletest} directory should then be placed under the \textit{SWModel} folder. The test suite can then be compiled using the provided Makefile and the following command:
+The test suites requires Google Test to compile. Google Test can be downloaded online at GitHub \footnote{\url{https://github.com/google/googletest}}. The \textit{googletest} directory should then be placed under the \textit{SWModel} folder. The test suite can then be compiled using the provided Makefile and the following command:
 \begin{lstlisting}
 > make all_tests
 \end{lstlisting}

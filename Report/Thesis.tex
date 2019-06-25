@@ -76,6 +76,7 @@
 	showstringspaces=false,
 	frame=single,
 	numbers=left,
+	tabsize=4,
 	numberstyle={\small \color{black}},
 	numbersep=9pt
 }
@@ -83,8 +84,8 @@
 \lstdefinelanguage{SystemVerilog}{
 	keywords={always_ff, always_comb, if, begin, end, else, case, endcase, typedef, const, logic, integer, assign, parameter, localparam, module, posedge, negedge, enum, input, output},
 	keywordstyle=\color{blue}\bfseries,
-	ndkeywords={class, export, boolean, throw, implements, import, this},
-	ndkeywordstyle=\color{darkgray}\bfseries,
+	ndkeywords={\$display, \$itor, \$signed, ifdef, endif, class, export, boolean, throw, implements, import, this},
+	ndkeywordstyle=\color{purple}\bfseries,
 	identifierstyle=\color{black},
 	sensitive=false,
 	comment=[l]{//},
