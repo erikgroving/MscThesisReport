@@ -100,7 +100,7 @@ The instantiation of the scheduler shown in listing \ref{sch_instant} is similar
 
 
 \paragraph{Kernel}
-The same kernel module is used in all the fully-connected layers. A high-level architecture of the computational kernel is provided in figure \ref{kernel-arch}. Note that saturation checking is not shown in the figure for simplicity, though it is implemented and verified. The scarcest computational resource in this FPGA architecture are the DSP slices, thus the kernel has been designed so that all required forms of multiplication are supported in the network. This is why there are 3 different outputs.
+The same kernel module is used in all the fully-connected layers. A high-level architecture of the computational kernel is provided in figure \ref{kernel-arch}. Note that saturation checking is not shown in the figure for simplicity, though it is implemented and verified. The scarcest computational resource in this FPGA architecture are the DSP slices, thus the kernel has been designed so that all required forms of multiplication are supported in the network. This is why there are 3 different outputs. During both forward and backward passes, a kernel works on a single specific neuron until computation for that neuron has been completed, after which if there is still more work to do, will become computing for another neuron.
 
 \begin{figure}
 	\centering 
@@ -124,6 +124,9 @@ The kernel is parameterized to support reuse in all the layers. The kernel has 2
 During the weight update phase, scaled weight gradients are added to the corresponding weight. This phase is implemented by iterating over the weight BRAM and weight gradient BRAM in the fully-connected layers. Scaling down the gradient by a learning rate is accomplished by using right bitshifts, which allows for efficient computation without any real sacrifice in training accuracy, as learning rates are generally arbitrary; frequently chosen as some power of 10.
 
 One update phase takes two cycles. In the first cycle, the weights and their corresponding gradients for an address are read from the BRAMs. In the second cycle, the gradient is scaled down using bitshifting and added to the weight. The result is then written to the weight BRAM in the same cycle. The address will then be incremented and the process continues until all weights have been updated. The control logic is implemented by simply using a counter. The address to the BRAM contains all the bits except the bottom bit, so the address is incremented once every 2 cycles. The bottom bit of the counter is used to indicate the update phase and determine read and write enables on the BRAMs.
+
+\paragraph{Backpropagation Priority}
+When the backward pass is in progress and the input neuron gradient's to a fully-connected layer become valid, there are two tasks that become ready to be performed. The first task is to use the valid input gradients to backpropagate neuron gradients to the previous layer. The second task is to calculate the weight gradients for the current layer. In this case, backpropagating the neuron gradients is given priority, because that way, once the gradients are backpropagated, the previous layer can also start performing its backward pass. Note that for the first layer, it is not possible to further backpropagate to previous neurons, so when the first layer receives its valid gradients, then it simply calculated its own weight gradients and then finishes.
 
 \subsubsection{Individual Fully-Connected Layer Implementation}
 While the scheduler and kernels are the same across fully-connected layers, the weight BRAM specifications are not, since number of neurons, kernels and fan-in are different for each layer. For this reason, all fully-connected layers needed to have separate files defining them. If the weights and gradients were loaded and stored to from DRAM instead of BRAM, then the fully-connected layer could be parameterized.
@@ -307,6 +310,60 @@ Once the address range and Zynq IP core has been added to the block diagram, C c
 caption={Code to allow the PS to perform AXI transactions with the FPGA}, label={mmap-c}, language=C, upquote=true]
 int handle = open("/dev/mem", O_RDWR | O_SYNC); 
 volatile ddr_data_t* ddr_ptr = mmap(NULL, 134217728, PROT_READ | PROT_WRITE, MAP_SHARED, handle, 0x40000000);
+\end{lstlisting}
+
+\subsection{Running Programs from the PS}
+Several programs have been created for this project. Currently on the SD-Card, there are 3 programs: \texttt{train}, \texttt{train\_small}, and \texttt{inference\_only}. The source code, written in C, for these programs can be found in the \todo[inline]{appendix} or in the \textit{ps\_code} folder of the project repository. The \texttt{train} program runs full-scale training on the entire MNIST dataset, splitting the data into training and testing sets of size according to a user-define. The \texttt{train\_small} program uses a very small subset of the MNIST dataset to demonstrate the model's ability to have the network successfully learn an entire dataset. Finally, \texttt{inference\_only} performs inference on every image in the MNIST dataset. A portion of terminal output from 5 epochs of training when running  the \texttt{train} program is shown in Listing \ref{train-out}.
+
+\begin{lstlisting}[
+caption={Training output from the \texttt{train} program}, label={train-out}, language=SystemVerilog, upquote=true]
+@@@ Loading MNIST images...
+@@@ Loading complete!
+
+@@@ EPOCH 1
+@@@ Training Images: 2950/5000
+Accuracy: 58.999997%
+@@@Test Images: 43120/65000
+Accuracy: 66.338462%
+Active Cycles: 89107985  Idle Cycles: 228978233
+Active Cycle Percentage: 28.013784%
+Elapsed time: 6.36157 seconds
+
+@@@ EPOCH 2
+@@@ Training Images: 3623/5000
+Accuracy: 72.460002%
+@@@Test Images: 45904/65000
+Accuracy: 70.621538%
+Active Cycles: 178215969         Idle Cycles: 458029353
+Active Cycle Percentage: 28.010575%
+Elapsed time: 6.36297 seconds
+
+@@@ EPOCH 3
+@@@ Training Images: 4003/5000
+Accuracy: 80.059999%
+@@@Test Images: 45345/65000
+Accuracy: 69.761539%
+Active Cycles: 267323953         Idle Cycles: 687061998
+Active Cycle Percentage: 28.010046%
+Elapsed time: 6.36260 seconds
+
+@@@ EPOCH 4
+@@@ Training Images: 4172/5000
+Accuracy: 83.440000%
+@@@Test Images: 55452/65000
+Accuracy: 85.310769%
+Active Cycles: 356431937         Idle Cycles: 916126394
+Active Cycle Percentage: 28.009084%
+Elapsed time: 6.36324 seconds
+
+@@@ EPOCH 5
+@@@ Training Images: 4260/5000
+Accuracy: 85.200000%
+@@@Test Images: 53002/65000
+Accuracy: 81.541538%
+Active Cycles: 445539921         Idle Cycles: 1145184941
+Active Cycle Percentage: 28.008611%
+Elapsed time: 6.36312 seconds
 \end{lstlisting}
 
 \subsection{AXI Implementation for the FPGA}

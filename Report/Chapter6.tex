@@ -149,6 +149,7 @@ Inference performance was also measured for each of the models. The result is sh
 	\begin{tikzpicture}
 	\begin{axis}[
 	ybar,
+	height=2in,
 	width=3.5in,
 	enlarge y limits=false,
 	enlarge x limits=0.15,
@@ -156,7 +157,7 @@ Inference performance was also measured for each of the models. The result is sh
 		anchor=north,legend columns=-1},
 	ylabel={Speedup},
 	ymin=0,
-	ymax=22,
+	ymax=11,
 	xmin=HWM,
 	xmax=SWM,
 	symbolic x coords={HWM, PyGPU, PyCPU, SWM},
@@ -198,7 +199,7 @@ This experiment was performed to evaluate if the sending of input over MMIO was 
 \section{Training Accuracy}
 This section details the accuracy of the training process using the hardware accelerator. Varying training dataset sizes were chosen during the training process as the reduced precision training resulted in non-convergent training. As such, the training accuracy experiment conducted modified two variables: the learning rate and the training dataset size. 
 
-The tested learning rates were $2^{-7}$, $2^{-8}$, $2^{-9}$, and $2^{-10}$. This is because the hardware model performs the learning rate scaling by using bitshifts. The experiments recorded the peak test data set accuracy during the training process. Note that the test dataset size for each run is 70000 minus the size of the training dataset. The results are shown in Figure \ref{training-accuracy}. In this experiment, the highest accuracy, 85.845\%, was achieved with a learning rate of $\eta = 2^{-9}$ and with a dataset of size 4,000.
+The tested learning rates were $2^{-7}$, $2^{-8}$, $2^{-9}$, and $2^{-10}$ (0.0078, 0.0039, 0.00195, and 0.000977). This is because the hardware model performs the learning rate scaling by using bitshifts. The experiments recorded the peak test data set accuracy during the training process. Note that the test dataset size for each run is 70000 minus the size of the training dataset. The results are shown in Figure \ref{training-accuracy}. In this experiment, the highest accuracy, 85.845\%, was achieved with a learning rate of $\eta = 2^{-9}$ and with a dataset of size 4,000.
 
 \begin{figure}
 	\centering
@@ -257,7 +258,7 @@ As previously mentioned, due to the relatively low training precision of 18-bit 
 	\legend{Test, Train}
 	\end{axis}
 	\end{tikzpicture}
-	\caption{Epoch-by-epoch training data for an HWM configuration. Clealy visible degradation of accuracy instead of ideal convergence after epoch 4.}
+	\caption{Epoch-by-epoch training data for an HWM configuration. Clearly visible degradation of accuracy instead of convergence after epoch 4.}
 	\label{epoch-by-epoch}
 \end{figure}
 

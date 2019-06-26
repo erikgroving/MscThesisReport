@@ -14,6 +14,8 @@ Many datasets converge faster using a larger batch size. In addition, a larger b
 
 \paragraph{Additional Layer Types}
 
+\paragraph{Biases backward pass}
+
 \paragraph{Additional Activation Functions}
 In both the software and hardware models for this project, the ReLU function was chosen specifically due to its computational simplicity, quick convergence during training, and its ability to frequently converge to a good solution. That being said, there are still many other activation functions in the realm of neural networks that also achieve strong training results. With varying datasets and network architectures, the most optimal activation function may also change. Other functions such as the sigmoid function, leaky ReLU, hyperbolic tangent, and many other could all be more optimal under certain circumstances. These functions would require extra hardware support though, and thus would require more computational resources to implement. As a result, one should expect that the speedup of the accelerator would not be quite so high as with the ReLU activation function.
 

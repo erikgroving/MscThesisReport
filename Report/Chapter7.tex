@@ -1,6 +1,30 @@
 \chapter{Analysis}\label{analysis}
-\section{Basis for Performance}
-\section{vanishing gradient distribution by layer}
-\section{Cycle Timing}
-\section{Training learn rate precision vs. batch size optimal lr}
+
+\section{Allocating Computationl Kernels for Performance}
+\subsection{Allocating Based on Only Forward Pass Analysis}
+When computing an optimal allocation of kernels to the fully-connected layers, it was enough to account only for the forward pass. This is because in the backward pass, there are 2 times the kernel is used, during previous layer neuron gradient calculation, and during weight gradient calculation. In each case, the amount of multiplications is equal to the sum of the fan-ins of all the neurons. For the forward pass, every neuron receives an input from every neuron in the previous layer, so the amount of MACs will be:
+\begin{align}
+MACs = \text{\#previous layer neurons} \times \text{\#current layer neurons} \label{macs}
+\end{align}
+
+For the backward pass, each backpropagated neuron gradient to a previous layer requires an MAC on all the neurons in the current layer. This must be done for each neuron in the previous layer, thus the total amount of MACs for backpropagating neuron gradients is also equivalent to Equation \ref{macs}.
+
+For computing all the weight gradients in a layer, every weight for every neuron must be multiplied by a gradient. Each neuron in the current layer will have a \# previous layer neurons weights, as that is the fan-in for each neuron. Thus, there same amount of multiplications is also equal to the expresion in Equation \ref{macs}.
+
+The backward pass also has a weight updating step, however, this uses bitshifts and not DSP slices to multiply the weight gradient by the learning rate. As such, the backward pass in this model uses exactly twice the amount of multiplications as the forward pass, so the optimal allocation of kernels is optimal for both the forward and backward pass.
+
+\subsection{Allocation Computations}
+Table \ref{macs-per-layer} shows the fan-in, number of neurons, and thus the number of MACs per layer during the forward pass.
+
+
+\section{Cycle Analysis}
+\section{Remedies for the Active Cycle Problem}
+\section{Granularity in Parallelism}
+\section{Balancing Ideal Learning Rate vs. Precision Restrictions}
+\section{Remedies for the Lack of Precision}
+\subsection{Vanishing Gradient Distribution by Layer}
+\subsection{Stability}
+
+
+
 
