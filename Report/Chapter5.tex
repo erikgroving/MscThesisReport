@@ -1,4 +1,4 @@
-\chapter{Hardware Model Testing and Verification}
+\chapter{Hardware Model Testing and Verification}\label{hw-model-testing}
 Verification is a vital part of hardware design. For this project, all relevant functionality in the FPGA was verified by simulation.
 \section{Simulation}
 During FPGA development, four different testbenches were created to test the functionality of the design. The first three were module level testbenches to test the scheduler, fully-connected layer, and softmax layers. The fourth testbench tests the entire FPGA design, thus verification of the fourth testbench means that all modules are functional. Therefore, this section will discuss verification of the fourth testbench, which is a full test of the network: \texttt{neural\_net\_top\_tb.sv}, found in the directory \textit{FPGA/FPGA.srcs/sim\_1/new} of the GitHub repository as well as in Appendix \todo[inline]{appendix for testbenches}.
