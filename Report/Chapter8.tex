@@ -1,28 +1,39 @@
 \chapter{Discussion}
+\section{Overall Performance}
+Regarding the performance, the accelerator has outperformed all compared CPU benchmarks. It performs online training with a speedup of 17.35 compared to the PyTorch CPU model. Considering how the PyTorch GPU achieved a 19.05 speedup using a batch size of 50, the accelerator was nearly able to keep pace. Furthermore, the GPU model does not use fine-level parallelism, so the accelerator achieves the highest speedup of all models for training with a batch size of 1.
 
+\section{Finely-Grained Parallelism}
+Training of neural networks in today's world is done almost exclusively GPUs and occasionally using CPUs. This is a stark contrast compared to inference, for which many different chips such as Google's TPU have been developed \cite{TPU}. However, as this thesis has shown, for neural network training problems that do not have vast amount of data parallelism available, there is no highly optimized solution. As such, the accelerator developed during the process of this thesis shows a massive potential for this side of training since it takes advantage of the finely-grained parallelism available at the neuron-level, something not done by options available in today's world.
 
-\section{Main Takeaways of the Thesis}
+\section{Limitations}
+\subsection{Precision}
+Precision is a major limitation of training for the current design. It is the reason why the training process is not able to smoothly converge to a local optimum. This results in contradicting desires to have more bits of information available in weights gradients while at the same time having a low learning rate.
+
+\subsection{Data Transfer Rate}
+Another major limitation of this work is the method of transferring training data by using a memory-mapped interface between the PS to the FPGA. This approach was used for convenience, however, as the FPGA active cycle results from Table \ref{active-cycle-table} showed, this approach is inefficient and became the largest bottleneck of performance for the design.
 
 \section{Future Work}
-While the potential for application-specific hardware accelerators training has been demonstrated in this thesis, there is a fair bit of work that would need be done to 
+While the potential for application-specific hardware accelerators training has been demonstrated in this thesis, there is a lot of potential for future work to improve the project.
 
 \paragraph{Increased Precision}
-As was demonstrated in the results section, training a neural network requires high precision computation. This is especially true for deeper neural networks as a result of the vanishing gradient problem.
+As was demonstrated in the results section, training a neural network requires high precision computation. This is especially true for deeper neural networks as a result of the vanishing gradient problem. Therefore, increasing the precision, either via changing to floating point or using more bits in fixed point would be a great improvement.
 
 \paragraph{Larger Batch Sizes}
-Many datasets converge faster using a larger batch size. In addition, a larger batch size provides a more accurate gradient of the actual loss function of the training set. Using a larger batch size would also open up the possibility to taking advantage of data-level parallelism and using an array of training accelerators. 
+Online training is only applicable to certain datasets. While the usefulness of an accelerator for online training has been shown, there are also many datasets that converge faster by using a larger batch size and offline training. In addition, a larger batch size provides a more accurate gradient of the actual loss function of the training set. 
+
+Since the amount of data-level parallelism increases with the batch size, it becomes increasingly harder to compete with the performance of GPUs. Furthermore, a solution to storing activations in memory to compute the backward must be designed. That being said, using a larger batch size would also open up the possibility to taking advantage of data-level parallelism and using an array of training accelerators. In such a setup, both data-level and neuron-level parallelism would be working together.
 
 \paragraph{Additional Layer Types}
+This design only implemented the fully-connected and softmax layer types. There are many other types of layers for neural networks, and this project could be expanded by implementing other layer types such as convolutional or pooling layers, which are  frequently used in image recognition.
 
-\paragraph{Biases backward pass}
+\paragraph{Backward Pass for Biases}
+In the interest of time and since the input data is already fairly normalized, only the backward pass for weights was computed. A rather quick improvement to the project would be to implement the backward pass for biases, so that the network architecture could be applied to non-normalized datasets as well. The gradient for a bias is simply the gradient of the net, as it is added directly to the net. Therefore, the bias gradients are already known in the hardware, and all the would be done would be to add BRAMs for the biases and slightly modify the update phase to update the biases.
 
 \paragraph{Additional Activation Functions}
-In both the software and hardware models for this project, the ReLU function was chosen specifically due to its computational simplicity, quick convergence during training, and its ability to frequently converge to a good solution. That being said, there are still many other activation functions in the realm of neural networks that also achieve strong training results. With varying datasets and network architectures, the most optimal activation function may also change. Other functions such as the sigmoid function, leaky ReLU, hyperbolic tangent, and many other could all be more optimal under certain circumstances. These functions would require extra hardware support though, and thus would require more computational resources to implement. As a result, one should expect that the speedup of the accelerator would not be quite so high as with the ReLU activation function.
+In both the software and hardware models for this project, the ReLU function was chosen specifically due to its computational simplicity, quick convergence during training, and its ability to converge to strong local optima. That being said, there are still many other activation functions in the realm of neural networks that also achieve strong training results. As the dataset and network architecture changes, so may the the most optimal activation function. Other activations functions such as the sigmoid function, leaky ReLU, hyperbolic tangent, and many others may be preferred to ReLU under certain circumstances. These functions would require extra hardware support though, and thus would require more computational resources to implement. As a result, one should expect that the performance of the accelerator would not be quite so high as with the ReLU activation function.
 
 \paragraph{Implement Streaming DDR Interface for FPGA}
-
-\paragraph{Optimized Algorithms}
+Adding a streaming data interface for training data would reduce the amount of cycles during which the FPGA idles. This would be a strong improvement for performance. Adding a streaming data DDR interface for weights and activations would allow networks with larger footprints to be supported by the hardware model. Both of these modifications would be an overall improvement to the model.
 
 \paragraph{Generated HDL for a Pre-Specified Network Architecture}
-
-\paragraph{ASIC Design}
+As one of the design goals was to be modular, if the streaming data interface were to be implemented, then it would be feasible to define a network architecture in a configuration file and create a program to generate HDL files for that network architecture. This would allow for a flexible, modular, FPGA-based framework that could implement any type of network, so long as the layer-types of that network were supported.
