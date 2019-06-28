@@ -1,35 +1,23 @@
 \chapter{Results}\label{results}
+\section{Benchmarking Models and Structure}
 Some of the results in this chapter are based on evaluating the hardware model (HWM) against other models implementing the same neural network. The other models include my software model (SWM), PyTorch running on the CPU (PyCPU), and PyTorch running on the GPU (PyGPU). My software model performs the same computations as the hardware model, so this provides insight to speedup over CPU without computational optimizations. The PyTorch CPU and GPU models then compare my hardware accelerator against heavily-optimized neural network frameworks. A training epoch in the following experiments is defined as performing learning on the 60,000 training images of the MNIST dataset. Inference experiments measure time to perform inference on all 70,000 images in the MNIST dataset.
 
-\todo[inline]{runtime not speedup/eff}
-Figures \ref{gpu-speedup} and \ref{gpu-eff} show PyGPU speedup and efficiency for varying batch sizes, respectively. As one might notice, there is no degradation in efficiency whatsoever. In fact, there are efficiencies even higher than 1. For batch size, this is plausible because increasing the batch size will slightly decrease the amount of work needed to be performed. The amount of forward and backward passes remains the same, though only 1 update of the weights needs to be performed for each batch. This means that a batch size of 1 performs 5 times more weight updates than a batch size of 5, which performs 20 times more weight updates than a batch size of 100. Therefore it is for this reason that efficiency remains around 1 even with massive batch sizes. Ultimately, it shows the massive amount of parallelism present in the training of neural networks. 
+\section{Parallelism in GPU-based Training}
+Figure \ref{gpu-speedup} shows PyGPU speedup for 1 training epoch over the 60,000 training images for varying batch sizes. As one might notice, speedup grows at approximately the same rate as batch size. This is a textbook display of data parallelism; where it is clear that the images in the batch are processed individually by separate CUDA cores. The slope is able to stay linear even at massive batch sizes because a larger batch size means fewer updates to the weights. This results in the overhead from a larger batch size being negated by the decrease in amount of weight updates. The amount of forward and backward passes, which can be completely parallelized, remains the same. The weight update, the serial portion of training, is only performed once per batch. This means that a batch size of 1 performs 5 times more weight updates than a batch size of 5, which performs 20 times more weight updates than a batch size of 100. Therefore it is for this reason to see such a  speedup.  
 
-From the figures, it is clear that the GPU model takes advantage of data-level parallelism to achieve performance, as epoch time is a near linear function of batch size. As a result, since the GPU-based implementation uses a coarser form of parallelism compared to the HWM, it would be illogical to benchmark speedup against the GPU with a batch size of 1. Therefore, the PyGPU model has been benchmarked using a batch size of 50 unless otherwise specified. It should be noted that the PyGPU model also performs 49 fewer weight updates as a result of this. Moreover, each weight update on a GPU would require reductions of partial gradient results from the CUDA kernels, so this should be taken into consideration when observing the following performance benchmarks.
+From the figures, it is clear that the GPU model takes advantage of data-level parallelism to achieve performance, as epoch time is a near linear function of batch size. As a result, since the GPU-based implementation uses a coarser form of parallelism compared to the HWM, it would be illogical to benchmark speedup against the GPU with a batch size of 1 since the GPU's parallelism depends on batch size. Therefore, in the following experiments, the PyGPU model has been benchmarked using a batch size of 50 unless otherwise specified. It should be noted that the PyGPU model also performs 49 fewer weight updates compared to the other models as a result of this. Moreover, each weight update on a GPU would require reductions of partial gradient results from the CUDA kernels, so this should be taken into consideration when observing the following performance benchmarks.
 
 \begin{figure}
 	\centering
 	\begin{tikzpicture}
 	\begin{axis}
-	[ymin=1, ytick = {1, 100, 200, 300, 400, 500, 600}, ylabel={Speedup}, xlabel={Batch Size}]
+	[xmin=1, ymin=1, ylabel={Speedup}, ytick={1, 100, 200, 300, 400, 500, 600}, xtick={1, 50, 100, 200, 500}, xlabel={Batch Size}]
 	\addplot coordinates 
 	{(1,1) (5, 5.59) (10, 10.436) (50, 56.178) (100, 103.73) (200, 205.404) (500, 587.764)};
 	\end{axis}
 	\end{tikzpicture}
-	\caption{GPU speedup by increasing batch size}
+	\caption{Speedup for 1 training epoch when training using different batch sizes for PyGPU. Speedup is calculated using the PyGPU model with a batch size of 1 as the reference.}
 	\label{gpu-speedup}
-\end{figure}
-
-\begin{figure}
-	\centering
-	\begin{tikzpicture}
-	\begin{axis}[
-	ymin=0.8, ymax = 1.2, ylabel={Efficiency}, xlabel={Batch Size}]
-	\addplot coordinates 
-	{(1,1) (10, 1.044) (50, 1.124) (100, 1.04) (200, 1.027) (500, 1.166)};
-	\end{axis}
-	\end{tikzpicture}
-	\caption{GPU efficiency by increasing batch size}
-	\label{gpu-eff}
 \end{figure}
 
 \section{Evaluation Hardware}
@@ -80,7 +68,7 @@ The average time for 1 training epoch has been recorded for each of the neural n
 	\begin{tikzpicture}
 	\begin{axis}[
 	ybar,
-	width=3.5in,
+	width=3.5in,	height=2in,
 	enlarge y limits=false,
 	enlarge x limits=0.15,
 	legend style={at={(0.5,-0.15)},
@@ -200,7 +188,7 @@ This experiment was performed to evaluate if the sending of input over MMIO was 
 \section{Training Accuracy}
 This section details the accuracy of the training process using the hardware accelerator. Varying training dataset sizes were chosen during the training process as the reduced precision training resulted in non-convergent training. As such, the training accuracy experiment conducted modified two variables: the learning rate and the training dataset size. 
 
-The tested learning rates were $2^{-7}$, $2^{-8}$, $2^{-9}$, and $2^{-10}$ (0.0078, 0.0039, 0.00195, and 0.000977). This is because the hardware model performs the learning rate multiplication by using bitshifts. The experiments recorded the peak test data set accuracy during the training process. Note that the test dataset size for each run is 70000 minus the size of the training dataset. The results are shown in Figure \ref{training-accuracy}. In this experiment, the highest accuracy, 85.845\%, was achieved with a learning rate of $\eta = 2^{-9}$ and with a dataset of size 4,000.
+The tested learning rates were $2^{-7}$, $2^{-8}$, $2^{-9}$, and $2^{-10}$ (0.0078, 0.0039, 0.00195, and 0.000977). This is because the hardware model performs the learning rate multiplication by using bitshifts. The experiments recorded the peak test data set accuracy during the training process. Note that the test dataset size for each run is 70000 minus the size of the training dataset. The results are shown in Figure \ref{training-accuracy}. In this experiment, the highest test set accuracy, 85.845\%, was achieved with a learning rate of $\eta = 2^{-9}$ and with a dataset of size 4,000. When using the same neural network architecture as the HWM, the SWM converges to 97.6\% test set accuracy.
 
 \begin{figure}
 	\centering
@@ -235,8 +223,6 @@ The tested learning rates were $2^{-7}$, $2^{-8}$, $2^{-9}$, and $2^{-10}$ (0.00
 	\caption{Maximum training accuracy reached for various learning rate and training set sizes.}
 	\label{training-accuracy}
 \end{figure}
-
-\todo[inline]{convergences for swmodel on the network}
 
 \subsection{Stability of Training}
 As previously mentioned, due to the relatively low training precision of 18-bit fixed-point, the training process does not converge to a maximum training accuracy, but rather it will reach a maximum training accuracy, and then accuracy will degrade as precision errors accumulate over the training process. Training statistics for the first 10 epochs of the most optimal training configuration from Figure \ref{training-accuracy} illustrate this phenomenon and are shown in Figure \ref{epoch-by-epoch}.

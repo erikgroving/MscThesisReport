@@ -33,21 +33,21 @@ Furthermore, recall that a kernel operates on only 1 neuron at a time. Therefore
 FC0 has 120.05 times more MACs than FC2. FC1 has 9.8 times more MACs than FC2. To balance runtime per layer, FC0 should then have roughly 120.05 times more DSPs than FC2 and so on. Using this information, we can write an equation for the amount of MACs and use substitution to come up with an ideal allocation scheme if allocate partial DSPs and ignore the fact that kernels work on 1 neuron at a time.
 \begin{align}
 	\text{DSP}_{FC0} &= 120.05 {DSP}_{FC2} \label{mac-1}\\	
-	\text{DSP}_{FC1} &= 12.25 {DSP}_{FC2} \label{mac-2}\\
+	\text{DSP}_{FC1} &= 9.8 {DSP}_{FC2} \label{mac-2}\\
 	\text{\# DSPs} &= 220 = \text{DSP}_{FC0} + \text{DSP}_{FC1} + \text{DSP}_{FC2} \label{mac-3}\\	
 	\intertext{Substituting into equation \ref{mac-3} using equations \ref{mac-1} and \ref{mac-2}:}\\
-	220 &= 120.05 {DSP}_{FC2} + 12.25  {DSP}_{FC2} +  {DSP}_{FC2} \\
-	220 &= 133.3 {DSP}_{FC2}\\ 
-	{DSP}_{FC2} &= 1.65 \label{mac-4}\\
+	220 &= 120.05 {DSP}_{FC2} + 9.8  {DSP}_{FC2} +  {DSP}_{FC2} \\
+	220 &= 129.85 {DSP}_{FC2}\\ 
+	{DSP}_{FC2} &= 1.69 \label{mac-4}\\
 	\intertext{Substituting the result from \ref{mac-4} into equations \ref{mac-1} and \ref{mac-2}:}
-	\text{DSP}_{FC0} &= 120.05 \times 1.65 = 198.08\label{mac-5}\\	
-	\text{DSP}_{FC1} &= 12.25 \times 1.65 = 20.21\label{mac-6}	
+	\text{DSP}_{FC0} &= 120.05 \times 1.60 = 203.36\label{mac-5}\\	
+	\text{DSP}_{FC1} &= 9.8 \times 1.69 = 16.60\label{mac-6}	
 \end{align}
 Thus if the 220 DSPs could be divided up ignoring all previous restrictions, the DSPs should be allocated according to Equations \ref{mac-4}, \ref{mac-5} and \ref{mac-6}. However, this is not possible, and DSPs are indivisible and the amount of kernels per layer should be a factor or multiple of the number of neurons, but it provides an maximum upper bound for performance.
 
-Starting with layer FC0, which has 98 neurons, we should delegate 196 kernels. This is quite close to the optimal 198.08 computed above, thus layer FC0 should be allocated 196 kernels, which is 98.9\% of the maximum upper bound. Continuing to layer FC1, which has 64 neurons, the optimal allocation is 20.21. The two closest factors of 64 would be 16 and 32. Choosing 32 is not an option because there would not be enough kernels available, so only 16 kernels are allocated to layer FC1, roughly 79\% of maximum upper bound for performance. Finally, layer FC1, with 10 neurons, rounding down and allocating 1 kernel would result in only 60.6\% of the upper bound performance. Since we have freed up a few kernels from rounding down in FC0 and FC1, FC2 is thus allocated 2 kernels, which allows it to finish faster than the optimally balanced latency for the 3 layers.
+Starting with layer FC0, which has 98 neurons, we should delegate 196 kernels. This is quite close to the optimal 203.36 computed above, thus layer FC0 should be allocated 196 kernels, which is $\frac{196}{203.36} = 96.38\%$ of the maximum upper bound. Continuing to layer FC1, which has 64 neurons, the optimal allocation is 16.6. The closest factor of 64 is thus 16 so 16 kernels are allocated, resulting in the same computation time as FC0 with $\frac{16}{16.6} = 96.38\%$ of the upper bound. Finally, layer FC2, with 10 neurons, rounding down and allocating 1 kernel would result in only $\frac{1}{1.69} = 59.17\%$ of the upper bound performance. Since a few kernels were freed up a from rounding down in FC0 and FC1, FC2 could be allocated 2 kernels, which allows it to finish faster than the optimally balanced latency for the 3 layers.
 
-The final allocation of kernels is shown in Table \ref{dsp-allocat}. A pipelined solution is only as fast as its slowest step. Since FC1 is the farthest away from the optimal upper bound, this solution performs at 79\% of the theoretical upper bound. It is worth re-mentioning that this upper bound is infeasible for this solution since it assumes DSPs as divisible and that kernels can arbitrarily switched from neuron to neuron, which would require finer-parallelism than what is supported, as this solution utilizes parallelism at the neuron-level. Also note that since 214 of the 220 DSPs are used, the softmax layer will also be able to use a DSP for calculation of the exponential function.
+The final allocation of kernels is shown in Table \ref{dsp-allocat}. A pipelined solution is only as fast as its slowest step. Since FC0 and FC1 is the farthest away from the optimal upper bound, this solution performs at 96.38\% of the theoretical upper bound for performance. It is worth re-mentioning that this upper bound is not actually possible since it assumes DSPs as divisible and that kernels can arbitrarily switched from neuron to neuron mid-computation, which would require finer-parallelism than what is supported in this architecture. Also note that since 214 of the 220 DSPs are used, the softmax layer was also able to use a DSP for calculation of the exponential function.
 
 \begin{table}
 	\centering 
@@ -64,7 +64,40 @@ The final allocation of kernels is shown in Table \ref{dsp-allocat}. A pipelined
 \end{table}
 
 \section{Cycle Analysis}
-\todo[inline]{math for cycle analysis, done already on a powerpoint before}
+This section calculates the computational cycles required for computing the forward and backward passes. Cycles spent pipelining or performing non-computational work are not included in this analysis. $FP$ and $BP$ are the amount of cycles needed to compute the forward pass and backward pass respectively. The amount of cycles for fully-connected layers in the forward pass can be roughly represented by $\frac{\# \text{MACs}}{\# \text{kernels}}$.
+\begin{align}
+	FP_{FC0} = \frac{76832}{196} &= 392\text{ cycles}\\	
+	FP_{FC1} = \frac{6272}{16} &= 392 \text{ cycles}\\
+	FP_{FC2} = \frac{640}{2} &= 320 \text{ cycles}	
+\end{align}
+For the softmax layer, there are several computational steps. For simplicity, conversions from fixed to floating point and vice versa are not included nor is the max circuit and the subsequent subtraction of the max. The softmax forward pass perform the exponential function, a sum of 10 values, and then a fixed point divison. The exponential function requires 20 cycles, the summation requires 10 cycles and the dividor takes 46 cycles. This results in $FP_{softmax} = 20 + 10 + 46 = 76$ cycles. $FP$ is computed in Equation \ref{fp-cycles}.
+\begin{align}
+	FP &= FP_{FC0} + FP_{FC1} + FP_{FC2} + FP_{softmax} \\
+	FP &= 392 + 392 + 320 + 76\\
+	FP &= 1180	 \text{ cycles} \label{fp-cycles}
+\end{align}
+
+Computing the backward pass is a bit more involved. Note that backpropagation of from the softmax layer to FC2 takes 1 cycle so it is not included. Each fully-connected layer first backpropagates neuron gradients for the previous layer and then computes the weight gradients, however, the previous layer can start computing the backward pass as soon as the neuron gradients are ready. Thus, the time for backpropagation to finish is not based on layer computation time, but instead $BP$ can be calculated by using neuron gradient computation time. Recall that the amount of computational cycles required to perform  backpropagation of neuron gradients ($NG$) and computation of weight gradients ($WG$) is the same. As described in Chapter \ref{hw-model}, updating the weights ($UW$) requires 2 cycles per-weight rather than 1-cycle per weight. Thus the $UW$ step requires twice as many cycles as the others. The longest path during backpropagation is thus backpropagating neuron gradients from FC2 to FC1, from FC1 to FC0 and then performing $WG$ in FC0 followed by $UW$.
+\begin{align}
+	BP &= NG_{FC2} + NG_{FC1} + WG_{FC0} + UW_{FC0} \\
+	\intertext{Substituting the forward pass cycles for the layers, as they are equivalent: }
+	BP &= 320 + 392 + 392 + (2 \times 392)\\
+	BP &= 1888\label{bp-cycles}
+	\intertext{Thus, the amount of cycles spent performing computation during 1 training cycle is: }
+	\text {Cycles } &= FP + BP = 1180 + 1888 \\
+	\text {Cycles } &= 3068 \text{ cycles}
+\end{align} 
+
+This analysis has shown that the forward pass has 1,180 cycles of computation, and that one iteration of training contains 3,068 cycles of computation. Indeed, by viewing the output simulation file, this is confirmed as the forward pass finishes at cycle at cycle 1,235 and the training iteration concludes at cycle 3,145. The discrepancy in simulated cycles to computational cycles comes from the overhead of  other actions in the design such as a max circuit, a pipelined addition reduction for neuron gradients, buffering of data between layers, non-computational data pipelining in layers, and floating-fixed type conversions. With a clock period of 20 nanoseconds (50 MHz) and ignoring data transfer overhead and delay, this would mean that 1 training iteration should take: $3145 \times 20ns = 62900 ns$ or approximately 62.9 microseconds.
+
+This result can be compared with the experimental results achieved. One training epoch was measured to take 5.455 seconds, as shown in Figure \ref{train-runtime-res}. Using the above calculated cycle results, at 62.9 microseconds per training iteration, training over a 60,000 image dataset we have:
+\begin{align}
+	t &= 62.9\text{e}^{-6} \times 60000 = 3.774 \text{ seconds}\\
+	\intertext{Recall however, how the active cycle percentage during training was only 69.2\%. Thus, the analytically derived computation time should account for this: }
+	t &= 3.774 \times \frac{1.0}{0.692}\\
+	t &= 5.454 \text{ seconds}
+\end{align}
+Compared to the experimentally measured epoch time of 5.455 seconds, the analytically computed training time of 5.454 seconds using cycle analysis is nearly exactly the same. The experimental data has thus successfully validated the cycle analysis.
 
 \section{Improving Performance}
 As was shown in Table \ref{active-cycle-table} of the results section, the active cycle percentage for training is only 69.20\%. Thus the first step to improve runtime performance would be to make data available for the FPGA to process faster. A suggested approach would be to use DRAM to stream data to the FPGA as done in other projects such as the neural network inference hardware accelerator proposed by Qiao et. al \cite{qiao}.
@@ -82,7 +115,14 @@ One of the key intricacies in optimizing hyperparameters for the training proces
 For example, a learning rate of 0.001 results in a much better solution than a learning rate of 0.016 when a batch size of 1 is used for the implemented network architecture. However, the smaller in the implemented accelerator, this would mean an additional 4 bitshifts to the right when updating the weights. This results in a weight update that will have 4 fewer bits of information. In this project, the best training solution was found using 9 bitshifts to the right, or a learning rate of 0.00195. The weight gradients in this project are of number format Q1.17. Shifting this to the right 9 bits results in a Q1.8 number. This means that each and every weight update in the network only have 8 bits of information.
 
 \paragraph{Vanishing Gradient Problem}
-To add on even further to the aforementioned loss of information is that many of the gradients are already quite small. This is largely in part to a phenomenon referred to as the vanishing gradient problem. The vanishing gradient problem in neural networks refers to the fact that as one backpropagates further and further through the network, the gradients become smaller and smaller. To illustrate this point, the distributions of non-zero gradients in the implemented network has been plotted in Figure \todo[inline]{Plot gradient distribution by layer}. Thus, as the gradients become smaller and smaller, they also become harder to represent, and when you are already losing many bits of information due to the learning rate, the vanishing gradient problem exacerbates the precision-induced error during training even more.
+To add on even further to the aforementioned loss of information is that many of the gradients are already quite small. This is largely in part to a phenomenon referred to as the vanishing gradient problem. The vanishing gradient problem in neural networks refers to the fact that as one backpropagates further and further through the network, the gradients become smaller and smaller. To illustrate this phenomenon, the distributions of non-zero gradients in the implemented network has been plotted in Figure \ref{weight-distrib}. As can be seen from the figure, gradients become smaller as backpropagation progresses from FC2 to FC0. Thus, as the gradients become smaller, they also become harder to represent using the limited precision of the hardware model. In an architecture where many bits of information are already being lost due to the learning rate, the vanishing gradient problem exacerbates the precision-induced error during training even more.
+
+\begin{figure}
+	\centering 
+	\includegraphics[width=\textwidth]{figures/weight_distrib}
+	\caption{Weight gradient distribution for the 3 fully-connected layers after performing a single backward pass on the network using the input used to verify the hardware model from Chapter \ref{hw-model-testing}.}
+	\label{weight-distrib}
+\end{figure}
 
 \section{Potential Solutions for the Lack of Precision}
 As 18-bit fixed-point computation has been shown to be too imprecise to perform training on this network, potential solutions to this problem should be observed. It is the author's opinion that future accelerators for the training of neural networks would be best implemeneted by using 32-bit floating point as was done in the F-CNN accelerator by Zhao et. al \cite{FCNN}. 
