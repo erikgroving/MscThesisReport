@@ -1,0 +1,81 @@
+\chapter{Hardware Model Code}\label{app:hw}
+This appendix contains the SystemVerilog code used to implement the hardware accelerator. Display statements have been omitted as they serve no functional purpose to the implementation nor is there any particular insight to be gained from them. They may of course still be viewed at the GitHub repository. Note that some style has been modified make code fit on the page.
+
+
+\lstset{basicstyle=\footnotesize\ttfamily, captionpos=t}
+\section{Source Files}
+\subsection{sys\_defs.vh}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/sys_defs.vh}
+\pagebreak
+
+\subsection{neural\_net\_top.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/neural_net_top.sv}
+\pagebreak
+
+\subsection{fc0\_layer.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc0_layer.sv}
+\pagebreak
+
+\subsection{fc0\_weight\_bram\_controller.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc0_weight_bram_controller.sv}
+\pagebreak
+
+\subsection{fc\_kernel.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc_kernel.sv}
+\pagebreak
+
+\subsection{fc\_scheduler.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc_scheduler.sv}
+\pagebreak
+
+\subsection{interlayer\_activation\_buffer.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/interlayer_activation_buffer.sv}
+\pagebreak
+
+\subsection{fc1\_layer.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc1_layer.sv}
+\pagebreak
+
+\subsection{previous\_layer\_gradient\_adder.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/previous_layer_gradient_adder.sv}
+\pagebreak
+
+\subsection{fc1\_weight\_bram\_controller.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc1_weight_bram_controller.sv}
+\pagebreak
+
+
+\subsection{fc2\_layer.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc2_layer.sv}
+\pagebreak
+
+\subsection{fc2\_weight\_bram\_controller.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc2_weight_bram_controller.sv}
+\pagebreak
+
+\subsection{softmax.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/softmax.sv}
+\pagebreak
+
+\section{Testbenches}
+\subsection{neural\_net\_top\_tb.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/neural_net_top_tb.sv}
+\pagebreak
+
+\subsection{softmax\_tb.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/softmax_tb.sv}
+\pagebreak
+
+\subsection{fc1\_scheduler\_tb.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc1_scheduler_tb.sv}
+\pagebreak
+
+\subsection{fc1\_layer\_tb.sv}
+\lstinputlisting[language=SystemVerilog, upquote=true]{HardwareCode/fc1_layer_tb.sv}
+\pagebreak
+
+
+
+
+
+

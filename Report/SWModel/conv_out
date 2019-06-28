@@ -1,0 +1,61 @@
+Running software model...
+2051 60000 28 28
+2051 10000 28 28
+Starting Accuracy
+Total correct: 721 / 10000
+Accuracy: 0.0721
+
+Epoch: 0
+Total correct: 9130 / 10000
+Accuracy: 0.913
+Training Loss: 0.420125
+Test Loss: 0.278018
+
+Epoch: 1
+Total correct: 9489 / 10000
+Accuracy: 0.9489
+Training Loss: 0.190758
+Test Loss: 0.160677
+
+Epoch: 2
+Total correct: 9614 / 10000
+Accuracy: 0.9614
+Training Loss: 0.140692
+Test Loss: 0.122296
+
+Epoch: 3
+Total correct: 9647 / 10000
+Accuracy: 0.9647
+Training Loss: 0.111989
+Test Loss: 0.110498
+
+Epoch: 4
+Total correct: 9697 / 10000
+Accuracy: 0.9697
+Training Loss: 0.0939236
+Test Loss: 0.0962559
+
+Epoch: 5
+Total correct: 9725 / 10000
+Accuracy: 0.9725
+Training Loss: 0.0791949
+Test Loss: 0.0834131
+
+Epoch: 6
+Total correct: 9743 / 10000
+Accuracy: 0.9743
+Training Loss: 0.0682333
+Test Loss: 0.0799352
+
+Epoch: 7
+Total correct: 9750 / 10000
+Accuracy: 0.975
+Training Loss: 0.0597757
+Test Loss: 0.0784236
+
+Epoch: 8
+Total correct: 9756 / 10000
+Accuracy: 0.9756
+Training Loss: 0.0527174
+Test Loss: 0.076377
+

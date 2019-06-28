@@ -1,0 +1,629 @@
+Running software model...
+2051 60000 28 28
+2051 10000 28 28
+Starting Accuracy
+Total correct: 1315 / 10000
+Accuracy: 0.1315
+
+Epoch: 0
+
+--- Training Stats ---
+Total correct: 54687 / 60000
+Accuracy: 0.91145
+Loss: 0.296164
+
+--- Test Stats ---
+Total correct: 9137 / 10000
+Accuracy: 0.9137
+Loss: 0.290749
+
+Epoch: 1
+
+--- Training Stats ---
+Total correct: 56226 / 60000
+Accuracy: 0.9371
+Loss: 0.217489
+
+--- Test Stats ---
+Total correct: 9365 / 10000
+Accuracy: 0.9365
+Loss: 0.216237
+
+Epoch: 2
+
+--- Training Stats ---
+Total correct: 56926 / 60000
+Accuracy: 0.948767
+Loss: 0.176934
+
+--- Test Stats ---
+Total correct: 9464 / 10000
+Accuracy: 0.9464
+Loss: 0.178945
+
+Epoch: 3
+
+--- Training Stats ---
+Total correct: 57424 / 60000
+Accuracy: 0.957067
+Loss: 0.149562
+
+--- Test Stats ---
+Total correct: 9548 / 10000
+Accuracy: 0.9548
+Loss: 0.155498
+
+Epoch: 4
+
+--- Training Stats ---
+Total correct: 57804 / 60000
+Accuracy: 0.9634
+Loss: 0.129047
+
+--- Test Stats ---
+Total correct: 9598 / 10000
+Accuracy: 0.9598
+Loss: 0.138743
+
+Epoch: 5
+
+--- Training Stats ---
+Total correct: 58083 / 60000
+Accuracy: 0.96805
+Loss: 0.113206
+
+--- Test Stats ---
+Total correct: 9630 / 10000
+Accuracy: 0.963
+Loss: 0.126462
+
+Epoch: 6
+
+--- Training Stats ---
+Total correct: 58261 / 60000
+Accuracy: 0.971017
+Loss: 0.100929
+
+--- Test Stats ---
+Total correct: 9652 / 10000
+Accuracy: 0.9652
+Loss: 0.116944
+
+Epoch: 7
+
+--- Training Stats ---
+Total correct: 58435 / 60000
+Accuracy: 0.973917
+Loss: 0.0912861
+
+--- Test Stats ---
+Total correct: 9665 / 10000
+Accuracy: 0.9665
+Loss: 0.110216
+
+Epoch: 8
+
+--- Training Stats ---
+Total correct: 58573 / 60000
+Accuracy: 0.976217
+Loss: 0.0830958
+
+--- Test Stats ---
+Total correct: 9681 / 10000
+Accuracy: 0.9681
+Loss: 0.104708
+
+Epoch: 9
+
+--- Training Stats ---
+Total correct: 58720 / 60000
+Accuracy: 0.978667
+Loss: 0.0763062
+
+--- Test Stats ---
+Total correct: 9697 / 10000
+Accuracy: 0.9697
+Loss: 0.100321
+
+Epoch: 10
+
+--- Training Stats ---
+Total correct: 58817 / 60000
+Accuracy: 0.980283
+Loss: 0.0702969
+
+--- Test Stats ---
+Total correct: 9712 / 10000
+Accuracy: 0.9712
+Loss: 0.0968376
+
+Epoch: 11
+
+--- Training Stats ---
+Total correct: 58905 / 60000
+Accuracy: 0.98175
+Loss: 0.0652254
+
+--- Test Stats ---
+Total correct: 9717 / 10000
+Accuracy: 0.9717
+Loss: 0.0940409
+
+Learning rate changed from 0.01 to 0.001
+
+Epoch: 12
+
+--- Training Stats ---
+Total correct: 59064 / 60000
+Accuracy: 0.9844
+Loss: 0.058816
+
+--- Test Stats ---
+Total correct: 9743 / 10000
+Accuracy: 0.9743
+Loss: 0.0867345
+
+Epoch: 13
+
+--- Training Stats ---
+Total correct: 59085 / 60000
+Accuracy: 0.98475
+Loss: 0.0578422
+
+--- Test Stats ---
+Total correct: 9740 / 10000
+Accuracy: 0.974
+Loss: 0.0861444
+
+Epoch: 14
+
+--- Training Stats ---
+Total correct: 59100 / 60000
+Accuracy: 0.985
+Loss: 0.0571396
+
+--- Test Stats ---
+Total correct: 9742 / 10000
+Accuracy: 0.9742
+Loss: 0.0857705
+
+Epoch: 15
+
+--- Training Stats ---
+Total correct: 59122 / 60000
+Accuracy: 0.985367
+Loss: 0.0565255
+
+--- Test Stats ---
+Total correct: 9746 / 10000
+Accuracy: 0.9746
+Loss: 0.0854607
+
+Epoch: 16
+
+--- Training Stats ---
+Total correct: 59130 / 60000
+Accuracy: 0.9855
+Loss: 0.0559528
+
+--- Test Stats ---
+Total correct: 9746 / 10000
+Accuracy: 0.9746
+Loss: 0.0851696
+
+Epoch: 17
+
+--- Training Stats ---
+Total correct: 59143 / 60000
+Accuracy: 0.985717
+Loss: 0.0554079
+
+--- Test Stats ---
+Total correct: 9746 / 10000
+Accuracy: 0.9746
+Loss: 0.0849133
+
+Epoch: 18
+
+--- Training Stats ---
+Total correct: 59147 / 60000
+Accuracy: 0.985783
+Loss: 0.0548901
+
+--- Test Stats ---
+Total correct: 9747 / 10000
+Accuracy: 0.9747
+Loss: 0.0846687
+
+Epoch: 19
+
+--- Training Stats ---
+Total correct: 59156 / 60000
+Accuracy: 0.985933
+Loss: 0.054384
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.084436
+
+Epoch: 20
+
+--- Training Stats ---
+Total correct: 59166 / 60000
+Accuracy: 0.9861
+Loss: 0.0538833
+
+--- Test Stats ---
+Total correct: 9750 / 10000
+Accuracy: 0.975
+Loss: 0.0842005
+
+Epoch: 21
+
+--- Training Stats ---
+Total correct: 59172 / 60000
+Accuracy: 0.9862
+Loss: 0.0534027
+
+--- Test Stats ---
+Total correct: 9751 / 10000
+Accuracy: 0.9751
+Loss: 0.083959
+
+Epoch: 22
+
+--- Training Stats ---
+Total correct: 59182 / 60000
+Accuracy: 0.986367
+Loss: 0.0529207
+
+--- Test Stats ---
+Total correct: 9753 / 10000
+Accuracy: 0.9753
+Loss: 0.0837284
+
+Epoch: 23
+
+--- Training Stats ---
+Total correct: 59185 / 60000
+Accuracy: 0.986417
+Loss: 0.0524521
+
+--- Test Stats ---
+Total correct: 9756 / 10000
+Accuracy: 0.9756
+Loss: 0.0835148
+
+Learning rate changed from 0.001 to 0.0001
+
+Epoch: 24
+
+--- Training Stats ---
+Total correct: 59194 / 60000
+Accuracy: 0.986567
+Loss: 0.0520516
+
+--- Test Stats ---
+Total correct: 9751 / 10000
+Accuracy: 0.9751
+Loss: 0.0832067
+
+Epoch: 25
+
+--- Training Stats ---
+Total correct: 59200 / 60000
+Accuracy: 0.986667
+Loss: 0.0519343
+
+--- Test Stats ---
+Total correct: 9751 / 10000
+Accuracy: 0.9751
+Loss: 0.0831224
+
+Epoch: 26
+
+--- Training Stats ---
+Total correct: 59198 / 60000
+Accuracy: 0.986633
+Loss: 0.0518641
+
+--- Test Stats ---
+Total correct: 9751 / 10000
+Accuracy: 0.9751
+Loss: 0.0830629
+
+Epoch: 27
+
+--- Training Stats ---
+Total correct: 59198 / 60000
+Accuracy: 0.986633
+Loss: 0.0518042
+
+--- Test Stats ---
+Total correct: 9751 / 10000
+Accuracy: 0.9751
+Loss: 0.0830121
+
+Epoch: 28
+
+--- Training Stats ---
+Total correct: 59198 / 60000
+Accuracy: 0.986633
+Loss: 0.051749
+
+--- Test Stats ---
+Total correct: 9750 / 10000
+Accuracy: 0.975
+Loss: 0.0829699
+
+Epoch: 29
+
+--- Training Stats ---
+Total correct: 59203 / 60000
+Accuracy: 0.986717
+Loss: 0.0516962
+
+--- Test Stats ---
+Total correct: 9750 / 10000
+Accuracy: 0.975
+Loss: 0.082935
+
+Epoch: 30
+
+--- Training Stats ---
+Total correct: 59204 / 60000
+Accuracy: 0.986733
+Loss: 0.0516452
+
+--- Test Stats ---
+Total correct: 9749 / 10000
+Accuracy: 0.9749
+Loss: 0.0829005
+
+Epoch: 31
+
+--- Training Stats ---
+Total correct: 59204 / 60000
+Accuracy: 0.986733
+Loss: 0.0515955
+
+--- Test Stats ---
+Total correct: 9749 / 10000
+Accuracy: 0.9749
+Loss: 0.082871
+
+Epoch: 32
+
+--- Training Stats ---
+Total correct: 59206 / 60000
+Accuracy: 0.986767
+Loss: 0.0515465
+
+--- Test Stats ---
+Total correct: 9749 / 10000
+Accuracy: 0.9749
+Loss: 0.0828427
+
+Epoch: 33
+
+--- Training Stats ---
+Total correct: 59206 / 60000
+Accuracy: 0.986767
+Loss: 0.0514983
+
+--- Test Stats ---
+Total correct: 9749 / 10000
+Accuracy: 0.9749
+Loss: 0.0828163
+
+Epoch: 34
+
+--- Training Stats ---
+Total correct: 59206 / 60000
+Accuracy: 0.986767
+Loss: 0.0514507
+
+--- Test Stats ---
+Total correct: 9750 / 10000
+Accuracy: 0.975
+Loss: 0.0827906
+
+Epoch: 35
+
+--- Training Stats ---
+Total correct: 59206 / 60000
+Accuracy: 0.986767
+Loss: 0.0514035
+
+--- Test Stats ---
+Total correct: 9749 / 10000
+Accuracy: 0.9749
+Loss: 0.0827643
+
+Learning rate changed from 0.0001 to 1e-05
+
+Epoch: 36
+
+--- Training Stats ---
+Total correct: 59208 / 60000
+Accuracy: 0.9868
+Loss: 0.0513975
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.082758
+
+Epoch: 37
+
+--- Training Stats ---
+Total correct: 59208 / 60000
+Accuracy: 0.9868
+Loss: 0.051391
+
+--- Test Stats ---
+Total correct: 9749 / 10000
+Accuracy: 0.9749
+Loss: 0.0827576
+
+Epoch: 38
+
+--- Training Stats ---
+Total correct: 59208 / 60000
+Accuracy: 0.9868
+Loss: 0.051385
+
+--- Test Stats ---
+Total correct: 9749 / 10000
+Accuracy: 0.9749
+Loss: 0.0827568
+
+Epoch: 39
+
+--- Training Stats ---
+Total correct: 59208 / 60000
+Accuracy: 0.9868
+Loss: 0.0513792
+
+--- Test Stats ---
+Total correct: 9749 / 10000
+Accuracy: 0.9749
+Loss: 0.0827557
+
+Epoch: 40
+
+--- Training Stats ---
+Total correct: 59210 / 60000
+Accuracy: 0.986833
+Loss: 0.0513737
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827545
+
+Epoch: 41
+
+--- Training Stats ---
+Total correct: 59210 / 60000
+Accuracy: 0.986833
+Loss: 0.0513684
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827529
+
+Epoch: 42
+
+--- Training Stats ---
+Total correct: 59208 / 60000
+Accuracy: 0.9868
+Loss: 0.0513632
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827512
+
+Epoch: 43
+
+--- Training Stats ---
+Total correct: 59208 / 60000
+Accuracy: 0.9868
+Loss: 0.0513581
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827494
+
+Epoch: 44
+
+--- Training Stats ---
+Total correct: 59208 / 60000
+Accuracy: 0.9868
+Loss: 0.0513531
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827472
+
+Epoch: 45
+
+--- Training Stats ---
+Total correct: 59208 / 60000
+Accuracy: 0.9868
+Loss: 0.0513482
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.082745
+
+Epoch: 46
+
+--- Training Stats ---
+Total correct: 59207 / 60000
+Accuracy: 0.986783
+Loss: 0.0513432
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827427
+
+Epoch: 47
+
+--- Training Stats ---
+Total correct: 59207 / 60000
+Accuracy: 0.986783
+Loss: 0.0513384
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827402
+
+Learning rate changed from 1e-05 to 1e-06
+
+Epoch: 48
+
+--- Training Stats ---
+Total correct: 59209 / 60000
+Accuracy: 0.986817
+Loss: 0.0513379
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827393
+
+Epoch: 49
+
+--- Training Stats ---
+Total correct: 59209 / 60000
+Accuracy: 0.986817
+Loss: 0.0513374
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.0827391
+
+Epoch: 50
+
+--- Training Stats ---
+Total correct: 59209 / 60000
+Accuracy: 0.986817
+Loss: 0.0513369
+
+--- Test Stats ---
+Total correct: 9748 / 10000
+Accuracy: 0.9748
+Loss: 0.082739
+
+Total correct: 9748 / 10000
+Accuracy: 0.9748
