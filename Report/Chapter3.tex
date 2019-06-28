@@ -5,7 +5,7 @@ This section documents the general-purpose neural network framework that was wri
 
 
 \section{Motivation}
-The software neural network framework was written so that the FPGA hardware model could be benchmarked against a CPU-based model that performs neural network inference and backward passes using the same method as the hardware model. This benchmark could be used to evaluate the performance of the hardware model. In addition, it could be benchmarked against professional open-source deep-learning frameworks that make use of advanced algebraic methods to perform computation such as matrix multiplication that inherently offer more efficiency. Furthermore, by developing a software model, the algorithmic integrity of the proposed network was able to verified and tested in an expedient manner by using a well-known testing framework, Google Test \cite{gtest}. Finally, if high floating-point precision were needed for training a network, then the software model could be used to learn the weights and parameters, and then subsequently be loaded into the weight BRAM of the FPGA hardware model.
+The software neural network framework was written so that the FPGA hardware model could be benchmarked against a CPU-based model that performs neural network inference and backward passes using the same method as the hardware model. This benchmark can be used to evaluate the performance of the hardware model. In addition, the software model can be benchmarked against professional open-source deep-learning frameworks that make use of advanced algebraic methods to perform computation such as matrix multiplication that inherently offer more efficiency. Furthermore, by developing a software model, the algorithmic integrity of the proposed network was able to verified and tested in an expedient manner by using a well-known testing framework, Google Test \cite{gtest}. Finally, if high floating-point precision were needed for training a network, then the software model could be used to learn the weights and parameters, and then subsequently be loaded into the weight BRAM of the FPGA hardware model.
 
 \section{Design}
 \subsection{Layers}
@@ -13,30 +13,25 @@ The software model was designed to be flexible such that any neural network arch
 \par 
 All layers are derived from a base class, \texttt{Layer}. Certain methods such as \texttt{forward()} and \texttt{backward()} must be implemented by all derived classes. There is then a \texttt{Net} class that contains a \texttt{vector} of \texttt{Layer} objects. This allows for a flexible design, as one only need add layers to the \texttt{Net} object. Furthermore, the model can easily be extended to other layer types so long as the layer type derives from \texttt{Layer}. 
 \par
-The non-linear activation function used in the model is ReLU because the derivative is trivial to compute. Compared to the sigmoid function, ReLU is much more computationally feasible for an FPGA hardware implementation, and thereofre, ReLU was used in the software model so that both models would use the same activation function.
+The non-linear activation function used in the model is ReLU because the derivative is trivial to compute. Compared to the sigmoid function, ReLU is much more computationally feasible for an FPGA hardware implementation, and therefore, ReLU was used in the software model so that both models would use the same activation function.
 \subsection{Training}
 \paragraph{The Softmax Function and Computing Loss Gradients}
-The network uses an implicit Softmax function for the last layer since this converts the logits in the last layer to numbers that can be interpreted as probabilities, ideal for image classification. 
+The network uses an implicit softmax function for the last layer since this converts the logits in the last layer to numbers that can be interpreted as probabilities, ideal for image classification. 
 \par
 The loss gradients for the neurons in the last layer are computed using multi-class cross entropy loss. Therefore, only one probability will account for loss, however, since each probability is an output from the softmax function which takes in all neuron outputs as input, all neurons in the last layer will have a loss gradient.
-\par 
-The derivative of this loss function is needed to perform backpropagation. We define $\mathcal{L}_i$ as the loss for neuron $i$ in the last layer and $z_i$ as the output of neuron $i$. We also introduce $y_i$, which is 1 if $x$ is an instance of class $i$ and 0 otherwise. We can then compute the loss gradient for neuron $i$ in the last layer quite simply as follows: 
-\[    
-\frac{\delta \mathcal{L}_i}{\delta z_i} = z_i - y_i
-\]
 
 \paragraph{Batch Size}
-The software model supports batch training and thus a batch size is to be specified when creating an instance of a new network.
+The software model supports batch training and thus a batch size must be specified when creating an instance of a new network.
 \paragraph{Learning Rate and Momentum}
 The software model learns using stochastic gradient descent. As such, the network is configured with a learning rate and momentum. The learning rate may be manually readjusted during training epochs.
 
 
 
 \section{Source Code Structure}
-The software model contains a Makefile and three folders: \textit{data}, \textit{src} and \textit{test}. The \textit{data} folder contains the MNIST binary data files, and is loaded by the example program that trains on the MNIST dataset. The \textit{src} folder contains the source code of the neural network framework. The \textit{test} folder contains test made using the Google Test C++ testing framework. The Makefile is used to build the source as well as tests. This section will detail the source files in the \textit{src} folder that are core to the software model framework. The files \textit{main.cpp} and \textit{parse\_data\{.cpp, .h\}} will be described in section \ref{sw-usage} that focuses on usage.
+The software model contains a Makefile and three folders: \textit{data}, \textit{src} and \textit{test}. The \textit{data} folder contains the MNIST binary data files, and is loaded by the example program that trains on the MNIST dataset. The \textit{src} folder contains the source code of the neural network framework. The \textit{test} folder contains tests made using the Google Test C++ testing framework. The Makefile is used to build the source as well as tests. This section will detail the source files in the \textit{src} folder that are core to the software model framework. The files \textit{main.cpp} and \textit{parse\_data\{.cpp, .h\}} will be described in section \ref{sw-usage} which focuses on usage.
 
 \paragraph{net\{.cpp, .h\}}
-These files contain the definition of the \texttt{Net} class, the highest-level class of the network. After initializing a \texttt{Net} object, layers can be added to the neural network by calling the \texttt{addLayer()} method which will add a \texttt{Layer} object to a \texttt{vector}. The \texttt{Net} class also stores intermediate activations from the current inference, which are required when performing backward pass to calculate loss gradients. The key parameters to the \texttt{Net} object are set in its constructor, and are defined in table \ref{nettable}. 
+These files contain the definition of the \texttt{Net} class, the highest-level class of the network. After initializing a \texttt{Net} object, layers can be added to the neural network by calling the \texttt{addLayer()} method which will add a \texttt{Layer} object to a \texttt{vector}. The \texttt{Net} class also stores intermediate activations from inferences, values which are required when performing backward pass to calculate loss gradients. The key parameters to the \texttt{Net} object are set in its constructor, and are defined in table \ref{nettable}. 
 \begin{table}
 	\centering
 	\begin{tabularx}{\textwidth}{|l|l|X|}
@@ -53,11 +48,11 @@ These files contain the definition of the \texttt{Net} class, the highest-level 
 	\label{nettable}
 \end{table}
 \par 
-The \texttt{Net} class has a method \texttt{inference()} that computes the forward pass for a batch of inputs, thus the argument is a 2-d \texttt{vector}, with each outer index corresponding to an input. The \texttt{()} operator has also been overloaded to call \texttt{inference()}. This is all that is needed to compute a forward pass.
+The \texttt{Net} class has a method \texttt{inference()} that computes the forward pass for a batch of inputs, thus the argument is a 2D \texttt{vector}, with each outer index corresponding to an input. The \texttt{()} operator has also been overloaded to call \texttt{inference()}. 
 \par 
-To compute the backward pass, \texttt{computeLossAndGradients()} should be called first. This method takes in the label data as a \texttt{vector} for the inputs as an argument and computes the loss gradients for the outer layer of the network. Next, a call to \texttt{backpropLoss()} should be made; this method propagates the outer layer loss gradients back through the neural network. After the loss has been back-propagated, weights of each \texttt{Neuron} in the network should be updated by calling \texttt{update()}. Previously cached forward pass activation data should then be cleared with a call to \texttt{clearSavedData()}.
+To compute the backward pass, \texttt{computeLossAndGradients()} should be called first. This method takes in the label data as a \texttt{vector} for the inputs as an argument and computes the loss gradients for the outer layer of the network. Next, a call to \texttt{backpropLoss()} should be made; this method propagates the outer layer loss gradients back through the neural network. After the loss has been backpropagated, weights of each \texttt{Neuron} in the network should be updated by calling \texttt{update()}. Previously cached forward pass activation data should then be cleared with a call to \texttt{clearSavedData()}.
 \paragraph{layer.h}
-This file contains the \texttt{Layer} class, which serves as the base class for all the different types of layer classes in the framework. It contains virtual methods \texttt{forward()} and \texttt{backward()}, representing the forward and backward pass functionality that must be implemented. All layer classes must also contain a \texttt{getType()} method to identify the layer type, as well as methods for \texttt{updateWeights()}, \texttt{clearData()}, and \texttt{getOutput()}.
+This file contains the \texttt{Layer} class, which serves as the base class for all the different types of layer classes in the framework. It contains virtual methods \texttt{forward()} and \texttt{backward()}, representing the forward and backward pass functionality that must be implemented. All layer classes must also implement a \texttt{getType()} method to identify the layer type, as well as methods for \texttt{updateWeights()}, \texttt{clearData()}, and \texttt{getOutput()}.
 
 \paragraph{convolutional\{.cpp, .h\}}
 These files contain the definition of the \texttt{ConvLayer} class, which implements a 2D-convolutional layer, and derives from the \texttt{Layer} class. A unique method to the \texttt{ConvLayer} class is the \texttt{getWindowPixels()} method, which returns the pixels inside the filter window, and is used when computing both the forward and backward passes.  The class' constructor and key parameters are described in table \ref{convtable}.
@@ -67,7 +62,7 @@ These files contain the definition of the \texttt{ConvLayer} class, which implem
 	\hline
 	\textbf{Name} 			& \textbf{Type} 		& \textbf{Description} \\\hline
 	\texttt{dim}  			& \texttt{uint32\_t}	& Dimensions of the input. The dimension is assumed square, meaning that rows = \texttt{dim} and columns = \texttt{dim}.\\\hline
-	\texttt{filt\_size} 	& \texttt{uint32\_t}	& Dimension of the filter used for the convolution, dimension also assumed square. \\\hline 
+	\texttt{filt\_size} 	& \texttt{uint32\_t}	& Dimensions of the filter used for the convolution, also assumed square. \\\hline 
 		\texttt{stride} 	& \texttt{uint32\_t}	& Size of the stride \\\hline 
 	\texttt{padding} 		& \texttt{uint32\_t}	& Padding used for convolution. \\\hline 
 	\texttt{in\_channels} 	& \texttt{uint32\_t}	& Amount of channels in the input. \\\hline 
@@ -87,13 +82,13 @@ These files define the \texttt{PoolingLayer} class. The class derives from \text
 \paragraph{neuron\{.cpp, .h\}}
 These files define the \texttt{Neuron} class. The \texttt{Neuron} class is the computational building block of the fully connected and convolutional layers. The fan-in of the neuron is specified in the constructor. Weights should be initialized using the \texttt{initWeights()} method, which implements He initialization \cite{HeZR015}. He initialization randomly initializes weights using a normal distribution with a mean of 0 and a variance of $\frac{2}{\text{fan\_in}}$. 
 \par 
-The class implements all necessary computational elements for a neuron in a neural network. During a forward pass, a neuron's net and activation are computed with \texttt{computeNet()} and \texttt{computeActivation()} respectively. When computing the backward pass, the gradients for the neuron's weights are computed using \texttt{calculateGradient()}. Weights can be subsequently updated using the \texttt{updateWeights()} function. Finally, all gradient data can be cleared using \texttt{clearBackwardData()}.
+The \texttt{Neuron} class implements all necessary computations  for a neuron in a neural network. During a forward pass, a neuron's net and activation are computed with \texttt{computeNet()} and \texttt{computeActivation()} respectively. When computing the backward pass, the gradients for the neuron's weights are computed using \texttt{calculateGradient()}. Weights can be subsequently updated using the \texttt{updateWeights()} function. Finally, all gradient data can be cleared using \texttt{clearBackwardData()}.
 
 \section{Usage}\label{sw-usage}
 This section will show how the software model may be used for image classification. In the following example, the software model will be trained to classify handwritten digits from the MNIST database. Each image is a handwritten digit of size 28$\times$28. The relevant files specific to this example are \textit{main.cpp} and \textit{parse\_data.cpp}.
 \paragraph{Load the Training and Testing Data}
 The first step to any neural network problem is to load the training and testing dataset.
-The MNIST dataset is provided as binary files and helper functions to load the data have been provided in \textit{parse\_data.cpp}. Training and testing data can be loaded as shown below.
+The MNIST dataset is provided as binary files and helper functions to load the data have been made in \textit{parse\_data.cpp}. Training and testing data can be loaded as shown below.
 \begin{lstlisting}[language=c++]
 std::vector< std::vector<double> > trainX;
 std::vector<int> trainY;
@@ -143,7 +138,7 @@ net.update();
 net.clearSavedData();
 \end{lstlisting}
 \paragraph{Build and Run the Model}
-Compile the code by running \texttt{make} in the \textit{SWModel} directory. The model will then train for the amount of epochs specified in the call to the \texttt{trainNet()} function in \texttt{main()}. Since the model is initialized with random weights, the final result of training is non-deterministic. Output similar to the output shown in figure \ref{sw-model-output} can be expected. In this case, the fully connected model was used, and train to a maximum accuracy of 97.62\%. it is also worth noting the expected differences in loss and accuracy between the training and test datasets. This discrepancy is expected as the network never learns from the test dataset.
+Compile the code by running \texttt{make} in the \textit{SWModel} directory. The model will then train for the amount of epochs specified in the call to the \texttt{trainNet()} function in \texttt{main()}. Since the model is initialized with random weights, the final result of training is non-deterministic. Output similar to the output shown in figure \ref{sw-model-output} can be expected. In this case, the fully connected model was used, and trains to a maximum accuracy of 97.62\%. It is also worth noting the expected differences in loss and accuracy between the training and test datasets. This discrepancy is expected as the network never learns from the test dataset.
 The difference between test and training dataset accuracy is normally used to quantify how well the network is able to generalize from the training dataset.
 \begin{figure}
 \begin{lstlisting}
@@ -191,7 +186,7 @@ Loss: 0.0845137
 \section{Testing}
 To ensure the correctness of the software model, several test suites were created during development. Source code for the test suites can be found in the \textit{test} folder as well as in Appendix \ref{app:sw}.
 \subsection{Test Suites}
-Four test suites were created during the development of the software model. The test cases were written to test features as they were developed. As such, the tests include neuron functionality, forward pass for fully connected and convolutional layers, and finally a gradient checking test suite to verify the backward pass. This section elaborates on the test suites that were used during development.
+Four test suites were created during the development of the software model. The test cases were written to test features as they were developed. As such, the tests include neuron functionality, forward pass for fully connected and convolutional layers, and finally a gradient checking test to verify the backward pass. This section elaborates on the test suites that were used during development.
 
 \paragraph{Neuron Testing}
 The neuron test suite, found in \textit{neuron\_test.cpp}, contains one primary test case that sets the weights of a neuron, computes the activation, and verifies that the activation is correct.
@@ -203,16 +198,16 @@ The test case for a fully connected layer's forward pass is located in \textit{f
 There is a test case to verify the convolutional forward pass located in \textit{conv\_test.cpp}. The test creates a convolutional layer that takes a 2$\times$2 feature vector with 2 channels, uses a 3$\times$3 filter for convolution, uses a stride and padding of 1, and produces 2 output channels. Weights and inputs were the arbitrarily assigned and the forward pass was computed and verified against the output that had been previously calculated manually.
 
 \paragraph{Gradient Checking}
-It would be very tedious and error-prone to debug the backward pass of a neural network using manual calculations, thus the general standard method of testing the gradients computed during a backward pass is to use gradient checking. Note that during the backward pass, all the loss gradients for every single weight and bias are calculated. For every weight (and bias), the partial derivative $\frac{\delta \mathcal{L}}{\delta w_i}$ is computed. Gradient checking verifies that the mathematically computed analytic derivative aligns with a numerically estimated derivative \cite{grad-check-stanford}. The numerical gradient can be computed as follows:
+It would be very tedious and error-prone to debug the backward pass of a neural network using manual calculations, thus the standard method of testing the gradients computed during a backward pass is to use gradient checking. Note that during the backward pass, all the loss gradients for every single weight and bias are calculated. For every weight (and bias), the partial derivative $\frac{\delta \mathcal{L}}{\delta w_i}$ is computed. Gradient checking verifies that the mathematically computed analytic derivative aligns with a numerically estimated derivative \cite{grad-check-stanford}. The numerical gradient can be computed as follows:
 \begin{align*}
 	\frac{\delta \mathcal{L}(w_i)}{\delta w_i} = \frac{\mathcal{L}(w_i + \epsilon) - \mathcal{L}(w_i - \epsilon)}{2\epsilon}
 \end{align*}
-The partial derivative of the loss with respect to a certain weight $w_i$ can thus be estimated by calculating the loss after incrementing $w_i$ by a small $\epsilon$, calculating the loss after decrementing $w_i$ by $\epsilon$, and then dividing the difference by $2\epsilon$. As long as $\epsilon$ is rather small, the derivatives should be near exact. In these test cases, $\epsilon = 10^{-4}$. Once we have the analytic and numerical gradient, we can compute the relative error as shown below:
+The partial derivative of the loss with respect to a certain weight $w_i$ can thus be estimated by calculating the loss after incrementing $w_i$ by a small $\epsilon$, calculating the loss after decrementing $w_i$ by $\epsilon$, and then dividing the difference by $2\epsilon$. As long as $\epsilon$ is rather small, the estimated derivative should be quite accurate. In these test cases, $\epsilon = 10^{-4}$. Once we have the analytic and numerical gradient, we can compute the relative error as shown below:
 \begin{align*}
 	\text{Relative gradient error} = \frac{\lvert\mathcal{L}'(w_i)_a - \mathcal{L}'(w_i)_n\rvert}
 		{\max \;\left(\lvert\mathcal{L}'(w_i)_a\rvert,\; \lvert\mathcal{L}'(w_i)_n\rvert\right)}
 \end{align*}
-If the relative error is below a certain threshhold, then it is safe to assume the gradient has been calculated correctly. In this test suite, the relative error threshhold must be lower than $10^{-7}$.
+If the relative error is below a certain threshold, then it is safe to assume the gradient has been calculated correctly. In this test suite, the relative error threshold must be lower than $10^{-7}$.
 \par 
 The two test cases in \textit{gradient\_check\_test.cpp} perform gradient checks for a fully connected network and for a convolutional neural network. The fully connected network gradient check test creates a neural network with an architecture shown in figure \ref{fctest}.
 \begin{figure}

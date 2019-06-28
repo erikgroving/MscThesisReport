@@ -3,7 +3,7 @@
 Some of the results in this chapter are based on evaluating the hardware model (HWM) against other models implementing the same neural network. The other models include my software model (SWM), PyTorch running on the CPU (PyCPU), and PyTorch running on the GPU (PyGPU). My software model performs the same computations as the hardware model, so this provides insight to speedup over CPU without computational optimizations. The PyTorch CPU and GPU models then compare my hardware accelerator against heavily-optimized neural network frameworks. A training epoch in the following experiments is defined as performing learning on the 60,000 training images of the MNIST dataset. Inference experiments measure time to perform inference on all 70,000 images in the MNIST dataset. All experiment data can be found in Appendix \ref{app:exp}.
 
 \section{Parallelism in GPU-based Training}
-Figure \ref{gpu-speedup} shows PyGPU speedup for 1 training epoch over the 60,000 training images for varying batch sizes. As one might notice, speedup grows at approximately the same rate as batch size. This is a textbook display of data parallelism; where it is clear that the images in the batch are processed individually by separate CUDA cores. The slope is able to stay linear even at massive batch sizes because a larger batch size means fewer updates to the weights. This results in the overhead from a larger batch size being negated by the decrease in amount of weight updates. The amount of forward and backward passes, which can be completely parallelized, remains the same. The weight update, the serial portion of training, is only performed once per batch. This means that a batch size of 1 performs 5 times more weight updates than a batch size of 5, which performs 20 times more weight updates than a batch size of 100. Therefore it is for this reason to see such a  speedup.  
+Figure \ref{gpu-speedup} shows PyGPU speedup for one training epoch over the 60,000 training images for varying batch sizes. As one might notice, speedup grows at approximately the same rate as batch size. This is a textbook display of data parallelism; where it is clear that the images in the batch are processed individually by separate CUDA cores. The slope is able to stay linear even at massive batch sizes because a larger batch size means fewer updates to the weights. This results in the overhead from a larger batch size being negated by the decrease in amount of weight updates. The amount of forward and backward passes, which can be completely parallelized, remains the same regardless of batch size. Conversely, the weight update, the serial portion of training, is only performed once per batch. This means that a batch size of 1 performs 5 times more weight updates than a batch size of 5, which performs 20 times more weight updates than a batch size of 100. Therefore it is for this reason to see such a drastic speedup with increased batch size.
 
 From the figures, it is clear that the GPU model takes advantage of data-level parallelism to achieve performance, as epoch time is a near linear function of batch size. As a result, since the GPU-based implementation uses a coarser form of parallelism compared to the HWM, it would be illogical to benchmark speedup against the GPU with a batch size of 1 since the GPU's parallelism depends on batch size. Therefore, in the following experiments, the PyGPU model has been benchmarked using a batch size of 50 unless otherwise specified. It should be noted that the PyGPU model also performs 49 fewer weight updates compared to the other models as a result of this. Moreover, each weight update on a GPU would require reductions of partial gradient results from the CUDA kernels, so this should be taken into consideration when observing the following performance benchmarks.
 
@@ -28,7 +28,7 @@ One of the most important metrics for an accelerator is runtime performance.
 While this hardware model is primarily focused on training, experiments to determine performance for both training and inference modes have both been conducted and are shown in this section.
 
 \subsection{Training}
-The average time for 1 training epoch has been recorded for each of the neural network models. The result is shown in Figure \ref{train-runtime-res}. This graph shows that the accelerator massively outperforms CPU models. Figure \ref{train-speedup-res} shows the speedup of the models, using PyCPU as a baseline. Notably, the HWM achieves a speedup of of nearly equal to that of the PyGPU model.
+The average time for one training epoch has been recorded for each of the neural network models. The result is shown in Figure \ref{train-runtime-res}. This graph shows that the accelerator massively outperforms CPU models. Figure \ref{train-speedup-res} shows the speedup of the models, using PyCPU as a baseline. Notably, the HWM achieves a speedup close to that of the PyGPU model.
 
 \begin{figure}
 	\centering
@@ -167,7 +167,7 @@ Inference performance was also measured for each of the models. The result is sh
 \end{figure}
 
 \subsection{Active/Idle Cycles}
-To determine the impact of using MMIO via AXI bus to transfer image data between the PS and the FPGA, active and idle cycles were measured during training and inference. An active cycle is defined as a cycle on the FPGA during which at least one of the layers was computationally active. An idle cycle is thus defined as a non-active cycle. 
+To determine the impact of using MMIO to transfer image data between the PS and the FPGA, active and idle cycles were measured during training and inference. An active cycle is defined as a cycle on the FPGA during which at least one of the layers was computationally active. An idle cycle is thus defined as a non-active cycle. 
 
 An experiment was performed to measure active cycle percentages for the HWM during inference and training. The dataset was the entire MNIST dataset in both cases. The active cycle percentage for inference and training are shown in Table \ref{active-cycle-table}.
 
@@ -179,16 +179,16 @@ An experiment was performed to measure active cycle percentages for the HWM duri
 		Inference & 25.13\% \\\hline 
 		Training & 69.20\% \\\hline
 	\end{tabular}
-	\caption{Active Cycle Percentages for inference and training.}
+	\caption{Active Cycle percentages for inference and training.}
 	\label{active-cycle-table}
 \end{table}
 
-This experiment was performed to evaluate if the sending of input over MMIO was the bottleneck of the system. As can be clearly seen from the table, the MMIO transfer of training data was indeed the bottleneck. Furthermore, since backpropagation requires roughly double the amount of work compared to inference, it makes sense that training (which is both inference and backpropagation) is roughly a factor of 3 more active.
+This experiment was performed to evaluate if the sending of input over MMIO was the bottleneck of the system. As can be clearly seen from the table, the MMIO transfer of training data was indeed the bottleneck. 
 
 \section{Training Accuracy}
-This section details the accuracy of the training process using the hardware accelerator. Varying training dataset sizes were chosen during the training process as the reduced precision training resulted in non-convergent training. As such, the training accuracy experiment conducted modified two variables: the learning rate and the training dataset size. 
+This section details the accuracy of the training process using the hardware accelerator. Varying training dataset sizes were chosen as the reduced precision resulted in non-convergent training. As such, the training accuracy experiment conducted modified two variables: the learning rate and the training dataset size. 
 
-The tested learning rates were $2^{-7}$, $2^{-8}$, $2^{-9}$, and $2^{-10}$ (0.0078, 0.0039, 0.00195, and 0.000977). This is because the hardware model performs the learning rate multiplication by using bitshifts. The experiments recorded the peak test data set accuracy during the training process. Note that the test dataset size for each run is 70000 minus the size of the training dataset. The results are shown in Figure \ref{training-accuracy}. In this experiment, the highest test set accuracy, 85.845\%, was achieved with a learning rate of $\eta = 2^{-9}$ and with a dataset of size 4,000. When using the same neural network architecture as the HWM, the SWM converges to 97.6\% test set accuracy.
+The tested learning rates were $2^{-7}$, $2^{-8}$, $2^{-9}$, and $2^{-10}$ (0.0078, 0.0039, 0.00195, and 0.000977). This is because the hardware model performs the learning rate scaling by using bitshifts. The experiments recorded the peak test dataset accuracy during the training process. Note that the test dataset size for each run is 70000 minus the size of the training dataset. The results are shown in Figure \ref{training-accuracy}. In this experiment, the highest test set accuracy, 85.845\%, was achieved with a learning rate of $\eta = 2^{-9}$ and with a dataset of size 4,000. When using the same neural network architecture as the HWM, the SWM converges to 97.6\% test set accuracy.
 
 \begin{figure}
 	\centering
@@ -224,7 +224,7 @@ The tested learning rates were $2^{-7}$, $2^{-8}$, $2^{-9}$, and $2^{-10}$ (0.00
 	\label{training-accuracy}
 \end{figure}
 
-\subsection{Stability of Training}
+\section{Stability of Training}
 As previously mentioned, due to the relatively low training precision of 18-bit fixed-point, the training process does not converge to a maximum training accuracy, but rather it will reach a maximum training accuracy, and then accuracy will degrade as precision errors accumulate over the training process. Training statistics for the first 10 epochs of the most optimal training configuration from Figure \ref{training-accuracy} illustrate this phenomenon and are shown in Figure \ref{epoch-by-epoch}.
 
 \begin{figure}
@@ -264,7 +264,7 @@ It should be noted that implementation is a non-deterministic process and every 
 \end{figure}
 
 \subsection{Resource Usage, Power, and Timing}
-The resource usage of the hardware model is shown in Table \ref{resource-usage}. As can be seen, the DSP slice is the scarcest resource, with LUTs and BRAMs also heavily being used.  Overall, high utilization of the FPGA resources were made to optimize the performance of the accelerator as much as possible.
+The resource usage of the hardware model is shown in Table \ref{resource-usage}. As can be seen, the DSP slice is the scarcest resource, with LUTs and BRAMs also heavily being used.  Overall, high utilization of the FPGA resources was intentional, trying to optimize the performance of the accelerator as much as possible.
 \begin{table}
 	\centering 
 	\begin{tabular}{|l|l|l|c|}
@@ -279,6 +279,6 @@ The resource usage of the hardware model is shown in Table \ref{resource-usage}.
 \label{resource-usage}
 \end{table}
 
-According to the Vivado report, the total on-chip power of the design is 2.798 Watts. While this number is reported with `Low' confidence by Vivado, this wattage is far lower than typical GPU power consumptions. Power measurements have not been made for the internal GPU during these experiments, though measurements using the Torch framework were made and reported GPU average power at 94.19 Watts while performing training using the AlexNet architecture.The power measurements were performed with an Nvidia Tesla K20M GPU with 5 GB of GDDR5 SDRAM, a top-of-the-line GPU \cite{xinbochen2016}. This is several magnitudes higher than the FPGA based solution in this thesis. 
+According to the Vivado report, the total on-chip power of the design is 2.798 Watts. While this number is reported with `Low' confidence by Vivado, this wattage is far lower than typical GPU power consumptions. Power measurements have not been made for the internal GPU during these experiments, though measurements using the Torch framework were made and reported GPU average power at 94.19 Watts while performing training using the AlexNet architecture. The power measurements were performed with an Nvidia Tesla K20M GPU with 5 GB of GDDR5 SDRAM, a top-of-the-line GPU \cite{xinbochen2016}. This is several magnitudes higher than the FPGA based solution in this thesis. 
 
-The implemented design for the hardware model is clocked at a frequency of 50 MHz. Placement and routing are both able to successfully complete with 0 timing violations. There was no need to improve frequency because the current performance bottleneck of this design stems from data transfer over the AXI bus and not from FPGA computational speed.
+The implemented design for the hardware model is clocked at a frequency of 50 MHz. Placement and routing are both able to successfully complete with no timing violations. There was no need to improve frequency because the current performance bottleneck of this design stems from data transfer over the AXI bus and not from FPGA computational speed.
